@@ -9,6 +9,7 @@
 
 #define PORT 4000
 // rodar com ./client localhost
+//s
 
 int main(int argc, char *argv[])
 {
