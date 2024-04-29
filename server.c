@@ -17,6 +17,8 @@
 // outra thread no cliente para receber push de arquivos do server
 // logo 3 threads: cuida inotify, recebe push, comandos do user
 
+// estrutura deve ter lista de users conectados no server, cada nodo representa = 1 username, numero de devices conectados do user (max 2), sockets dos devices, descritor das threads criadas
+
 #define PORT 4000
 
 int main(int argc, char *argv[])
