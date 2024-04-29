@@ -3,4 +3,6 @@ Trabalho final de INF01151 - Sistemas Operacionais II ministrada por Alberto Ego
 
 Akim Lee Pizutti - 302937
 
+Gustavo Picoli - 332780
+
 Yasmin K Beer Zebrowski - 277765
