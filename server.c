@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
+#include <pthread.h>
 
 // beej nao rodou no lab (erro de comp)
 //  rodar com ./server e rodar client
@@ -21,6 +22,57 @@
 // estrutura deve ter lista de users conectados no server, cada nodo representa = 1 username, numero de devices conectados do user (max 2), sockets dos devices, descritor das threads criadas
 
 #define PORT 4000
+#define MAX_CLIENTS 5
+
+// Function to handle each client connection
+void *handle_client(void *arg)
+{
+	int client_socket = *((int *)arg);
+	char buffer[1024] = {0};
+	char *i_gotchu_message = "I got your message!\n";
+
+	// Read data from client
+	while (1)
+	{
+		int message;
+		/* read from the socket */
+		message = read(client_socket, buffer, sizeof(buffer));
+		if (message == 0)
+		{
+			printf("Client disconnected.\n");
+			break;
+		}
+		else if (message == -1)
+		{
+			perror("ERROR reading from socket");
+			break;
+		}
+		/* write in the socket */
+		else
+		{
+			printf("Here is the message: %s\n", buffer);
+
+			message = write(client_socket, i_gotchu_message, strlen(i_gotchu_message));
+			if (message < 0)
+				printf("ERROR writing to socket");
+		}
+	}
+
+	// n = read(client_socket, buffer, 256);
+	// if (n < 0)
+	// 	printf("ERROR reading from socket");
+	// printf("Here is the message: %s\n", buffer);
+
+	// n = write(client_socket, "I got your message", 18);
+	// if (n < 0)
+	// 	printf("ERROR writing to socket");
+
+	// close(client_socket);
+	bzero(buffer, 256);
+	// Close the client socket
+	close(client_socket);
+	pthread_exit(NULL);
+}
 
 int main(int argc, char *argv[])
 {
@@ -61,26 +113,30 @@ int main(int argc, char *argv[])
 	}
 
 	// TCP LISTEN
-	listen(sockfd, 5);
+	listen(sockfd, MAX_CLIENTS);
 
-	clilen = sizeof(struct sockaddr_in);
-	if ((newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen)) == -1)
-		printf("ERROR on accept");
+	while (1)
+	{
+		printf("Waiting for connections...\n");
 
-	bzero(buffer, 256);
+		clilen = sizeof(struct sockaddr_in);
+		if ((newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen)) == -1)
+			printf("ERROR on accept");
 
-	/* read from the socket */
-	n = read(newsockfd, buffer, 256);
-	if (n < 0)
-		printf("ERROR reading from socket");
-	printf("Here is the message: %s\n", buffer);
+		printf("New client connected.\n");
 
-	/* write in the socket */
-	n = write(newsockfd, "I got your message", 18);
-	if (n < 0)
-		printf("ERROR writing to socket");
+		// Create a new thread to handle the client
+		pthread_t thread_id;
+		if (pthread_create(&thread_id, NULL, handle_client, &newsockfd) != 0)
+		{
+			perror("pthread_create error");
+			//            close(newsockfd);
+		}
+		printf("Client thread successfully created.\n");
 
-	close(newsockfd);
+		// bzero(buffer, 256);
+	}
+
 	close(sockfd);
 	return 0;
 }
