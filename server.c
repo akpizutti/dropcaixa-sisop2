@@ -4,18 +4,19 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 
-//beej nao rodou no lab (erro de comp)
-// rodar com ./server e rodar client
-
-// sugestoes do professor
-// main em loop recebendo requests e criando threads para cada accept com cliente(device)
-// switch case em loop dentro da thread que trata comandos que o user enviar
-// thread no cliente fica monitorando modificações de arquivos: inotify via o socket criado para alertar o server
-// -> server entao propaga uma mensagem de alteraçao para todos os devices
-// outra thread no cliente para receber push de arquivos do server
-// logo 3 threads: cuida inotify, recebe push, comandos do user
+// beej nao rodou no lab (erro de comp)
+//  rodar com ./server e rodar client
+// s
+//  sugestoes do professor
+//  main em loop recebendo requests e criando threads para cada accept com cliente(device)
+//  switch case em loop dentro da thread que trata comandos que o user enviar
+//  thread no cliente fica monitorando modificações de arquivos: inotify via o socket criado para alertar o server
+//  -> server entao propaga uma mensagem de alteraçao para todos os devices
+//  outra thread no cliente para receber push de arquivos do server
+//  logo 3 threads: cuida inotify, recebe push, comandos do user
 
 // estrutura deve ter lista de users conectados no server, cada nodo representa = 1 username, numero de devices conectados do user (max 2), sockets dos devices, descritor das threads criadas
 
@@ -23,26 +24,47 @@
 
 int main(int argc, char *argv[])
 {
+
+	// SOCKET LOGIC
 	int sockfd, newsockfd, n;
 	socklen_t clilen;
 	char buffer[256];
 	struct sockaddr_in serv_addr, cli_addr;
 
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-        printf("ERROR opening socket");
+		printf("ERROR opening socket");
 
 	serv_addr.sin_family = AF_INET;
 	serv_addr.sin_port = htons(PORT);
 	serv_addr.sin_addr.s_addr = INADDR_ANY;
 	bzero(&(serv_addr.sin_zero), 8);
 
-	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+	if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
 		printf("ERROR on binding");
 
+	// SYNCING SERVER AND DEVICES LOGIC
+
+	// CREATES SYNC_DIR LOGIC
+	const char *folder;
+	folder = "./sync_dir";
+	struct stat sb;
+
+	if (stat(folder, &sb) == 0 && S_ISDIR(sb.st_mode))
+	{
+		printf("Directory exists\n");
+	}
+	else
+	{
+		printf("Creating sync_dir...\n");
+		mkdir(folder, 0700);
+		printf("sync_dir created!\n");
+	}
+
+	// TCP LISTEN
 	listen(sockfd, 5);
 
 	clilen = sizeof(struct sockaddr_in);
-	if ((newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen)) == -1)
+	if ((newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen)) == -1)
 		printf("ERROR on accept");
 
 	bzero(buffer, 256);
@@ -54,7 +76,7 @@ int main(int argc, char *argv[])
 	printf("Here is the message: %s\n", buffer);
 
 	/* write in the socket */
-	n = write(newsockfd,"I got your message", 18);
+	n = write(newsockfd, "I got your message", 18);
 	if (n < 0)
 		printf("ERROR writing to socket");
 
