@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
 
 while(is_watching == true){
 
-    wd = inotify_add_watch(fd, ".",
+    wd = inotify_add_watch(fd, "./sync_dir",
         IN_MODIFY | IN_CREATE | IN_DELETE);
     length = read(fd, buffer, BUF_LEN);
 
