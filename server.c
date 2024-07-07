@@ -8,9 +8,7 @@
 #include <netinet/in.h>
 #include <pthread.h>
 
-// beej nao rodou no lab (erro de comp)
 //  rodar com ./server e rodar client
-// s
 //  sugestoes do professor
 //  main em loop recebendo requests e criando threads para cada accept com cliente(device)
 //  switch case em loop dentro da thread que trata comandos que o user enviar
@@ -23,14 +21,130 @@
 
 #define PORT 4000
 #define MAX_CLIENTS 5
+#define MAX_USERNAME_LENGTH 50
+#define MAX_DEVICES 2
+#define BUFFER_SIZE 1024
+#define SYNC_DIR "sync_dir/"
+
+void createSyncDir(){
+	const char *folder;
+	folder = "./sync_dir";
+	struct stat sb;
+
+	if (stat(folder, &sb) == 0 && S_ISDIR(sb.st_mode))
+	{
+		printf("Directory exists\n");
+	}
+	else
+	{
+		printf("Creating sync_dir...\n");
+		mkdir(folder, 0700);
+		printf("sync_dir created!\n");
+	}
+}
+
+void commandMenu()
+{
+  printf("1. upload <path/filename.ext>\n");
+  printf("2. download <filename.ext>\n");
+  printf("3. delete <filename.ext> \n");
+  printf("4. list_server\n");
+  printf("5. list_client \n");
+  printf("6. get_sync_dir\n");
+  printf("7. exit\n");
+}
+
+void receive_and_save_file(int client_socket, const char *file_path) {
+    char full_file_path[256];
+    snprintf(full_file_path, sizeof(full_file_path), "%s%s", SYNC_DIR, file_path); // salva em sync_dir
+
+    FILE *file = fopen(full_file_path, "wb"); // Open the file for writing in binary mode
+
+    if (file == NULL) {
+        perror("Error opening file for writing");
+        return;
+    }
+
+    char buffer[BUFFER_SIZE];
+    ssize_t bytes_received;
+
+    while ((bytes_received = recv(client_socket, buffer, BUFFER_SIZE, 0)) > 0) {
+        fwrite(buffer, 1, bytes_received, file);
+    }
+
+    if (bytes_received < 0) {
+        perror("Error receiving file data");
+
+    }
+
+    fclose(file);
+}
+
+void process_file_sync_request(char *request, int client_socket) {
+    // <action> <path>
+
+    char *action = strtok(request, " "); // Tokenize based on space
+    char *path = strtok(NULL, " "); // Get the path
+
+//    switch(action){
+//        switch(path){
+//            "upload":
+//                break;
+//            "download":
+//                break;
+//        }
+//        "exit":
+//        break;
+//        default: break;
+//    }
+
+
+    if (action != NULL) {
+        if (path != NULL) {
+            if (strcmp(action, "upload") == 0) {
+                receive_and_save_file(client_socket, file_path);
+            } else if (strcmp(action, "download") == 0) {
+                // Handle file download
+                // Implement logic to send the requested file to the client from the specified path
+            } else if (strcmp(action, "delete") == 0) {
+                // Handle file deletion
+                // Implement logic to delete the file at the specified path
+            } else {
+                printf("Invalid command");
+            }
+        }
+        else {
+            if (strcmp(action, "get_sync_dir") == 0) {
+                createSyncDir();
+
+            } else if (strcmp(action, "list_server") == 0) {
+
+            } else if (strcmp(action, "list_client") == 0) {
+
+            } else if (strcmp(action, "exit")) {
+            	bzero(buffer, 256);
+            	close(client_socket);
+            	pthread_exit(NULL);
+            }
+            else {
+            // todo
+            }
+        }
+    } else {
+        printf("Invalid command. <action> <path?>");
+    }
+}
 
 // Function to handle each client connection
 void *handle_client(void *arg)
 {
 	int client_socket = *((int *)arg);
-	char buffer[1024] = {0};
-	char *i_gotchu_message = "I got your message!\n";
+//	char buffer[1024] = {0};
+//	char *i_gotchu_message = "I got your message!\n";
+    char buffer[BUFFER_SIZE];
+    ssize_t bytes_received = recv(client_socket, buffer, BUFFER_SIZE, 0);
 
+    commandMenu();
 	// Read data from client
 	while (1)
 	{
@@ -50,9 +164,9 @@ void *handle_client(void *arg)
 		/* write in the socket */
 		else
 		{
-			printf("Here is the message: %s\n", buffer);
-
-			message = write(client_socket, i_gotchu_message, strlen(i_gotchu_message));
+//			printf("Here is the message: %s\n", buffer);
+            process_file_sync_request(buffer, client_socket);
+//			message = write(client_socket, i_gotchu_message, strlen(i_gotchu_message));
 			if (message < 0)
 				printf("ERROR writing to socket");
 		}
@@ -94,23 +208,6 @@ int main(int argc, char *argv[])
 	if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
 		printf("ERROR on binding");
 
-	// SYNCING SERVER AND DEVICES LOGIC
-
-	// CREATES SYNC_DIR LOGIC
-	const char *folder;
-	folder = "./sync_dir";
-	struct stat sb;
-
-	if (stat(folder, &sb) == 0 && S_ISDIR(sb.st_mode))
-	{
-		printf("Directory exists\n");
-	}
-	else
-	{
-		printf("Creating sync_dir...\n");
-		mkdir(folder, 0700);
-		printf("sync_dir created!\n");
-	}
 
 	// TCP LISTEN
 	listen(sockfd, MAX_CLIENTS);
