@@ -11,6 +11,24 @@
 // rodar com ./client localhost
 //s
 
+int send_file(int socket, const char* path) {
+    char buffer[256];
+    FILE * file = fopen(path, "r+");
+
+    if (file == NULL) {printf("File error\n"); close(socket); exit(0);}
+
+    fgets(buffer,256, file);
+
+	/* write in the socket */
+	  int n = write(socket, buffer, strlen(buffer));
+    bzero(buffer,256);
+    if (n < 0)
+		  return -1;
+
+    return 0;
+    
+}
+
 int main(int argc, char *argv[])
 {
     int sockfd, n;
@@ -18,6 +36,8 @@ int main(int argc, char *argv[])
     struct hostent *server;
 
     char buffer[256];
+    char filePath[256];
+
     if (argc < 2) {
 		fprintf(stderr,"usage %s hostname\n", argv[0]);
 		exit(0);
@@ -41,16 +61,12 @@ int main(int argc, char *argv[])
 	if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
         printf("ERROR connecting\n");
 
-    printf("Enter the message: ");
-    bzero(buffer, 256);
-    fgets(buffer, 256, stdin);
+    printf("Enter the path of file to send: ");
+    fgets(filePath, 256, stdin);
+    // remove \n no final da string de entrada
+    filePath[strcspn(filePath, "\n")] = 0;
 
-	/* write in the socket */
-	n = write(sockfd, buffer, strlen(buffer));
-    if (n < 0)
-		printf("ERROR writing to socket\n");
-
-    bzero(buffer,256);
+    send_file(sockfd,filePath);
 
 	/* read from the socket */
     n = read(sockfd, buffer, 256);
