@@ -7,6 +7,11 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
+#include "packet.hpp"
+
+// tamanho máximo de arquivo em bytes
+#define MAX_FILE_SIZE 65536
+
 #define PORT 4000
 // rodar com ./client localhost
 //s
@@ -18,6 +23,22 @@ int send_file(int socket, const char* path) {
     if (file == NULL) {printf("File error\n"); close(socket); exit(0);}
 
     fgets(buffer,256, file);
+
+    // // DEBUG ZONE 
+    // printf("packet size: %d", PACKET_SIZE);
+    Packet packet;
+    packet.type = -1;
+    packet.seqn = -1;
+    packet.total_size = -1;
+    packet.length = -1;
+    printf("buffer strlen in client: %u\n", strlen(buffer));
+    strcpy(packet.payload, buffer);
+
+
+    bzero(buffer,256);
+    serialize_packet(packet, buffer);
+    exit(0);
+    // // DEBUG ZONE END
 
 	/* write in the socket */
 	  int n = write(socket, buffer, strlen(buffer));
@@ -38,6 +59,7 @@ int main(int argc, char *argv[])
     char buffer[256];
     char filePath[256];
 
+    
     if (argc < 2) {
 		fprintf(stderr,"usage %s hostname\n", argv[0]);
 		exit(0);
@@ -56,6 +78,9 @@ int main(int argc, char *argv[])
 	serv_addr.sin_port = htons(PORT);
 	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
 	bzero(&(serv_addr.sin_zero), 8);
+
+    
+
 
 
 	if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
