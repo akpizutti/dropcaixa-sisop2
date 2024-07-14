@@ -15,6 +15,7 @@ typedef struct packet{
 } Packet;
 
 void serialize_packet(Packet data, char* buffer);
+Packet create_packet(int type, int seqn, int total_size, int length, char* payload);
 
 
 #endif

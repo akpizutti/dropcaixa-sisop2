@@ -26,13 +26,10 @@ int send_file(int socket, const char* path) {
 
     // // DEBUG ZONE 
     // printf("packet size: %d", PACKET_SIZE);
-    Packet packet;
-    packet.type = -1;
-    packet.seqn = -1;
-    packet.total_size = -1;
-    packet.length = -1;
-    printf("buffer strlen in client: %u\n", strlen(buffer));
-    strcpy(packet.payload, buffer);
+    Packet packet = create_packet(-1,-1,-1,-1,buffer);
+
+
+
 
 
     bzero(buffer,256);
