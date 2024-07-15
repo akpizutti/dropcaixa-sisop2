@@ -3,8 +3,15 @@
 
 #include <cstdint>
 
+// definição de tipos de pacotes
+#define PACKET_FILE_SIGNAL 1 // pacote que indica que o próximo será um PACKET_FILE_NAME. payload contém nome do arquivo
+#define PACKET_FILE_DATA 2   // pacote que contém um arquivo ou fragmento de um arquivo
+
+
+
 #define MAX_PAYLOAD_SIZE 256
-#define PACKET_SIZE 3 * sizeof(uint16_t) + sizeof(uint32_t) + MAX_PAYLOAD_SIZE * sizeof(char)
+#define SIZE_PACKET 3 * sizeof(uint16_t) + sizeof(uint32_t) + MAX_PAYLOAD_SIZE * sizeof(char)
+#define MAX_FILE_SIZE 65536
 
 typedef struct packet{
     uint16_t type;          //Tipo do pacote
@@ -28,6 +35,13 @@ void serialize_packet(Packet data, char* buffer);
 
 // transforma uma sequência de bits em uma struct de pacote
 Packet deserialize_packet(char* buffer);
+
+// envia um arquivo para o socket especificado
+int send_file(char* filePath, int socket);
+
+// recebe um arquivo e coloca seu conteúdo em buffer
+int receive_file(char* buffer, int socket);
+
 
 
 

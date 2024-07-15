@@ -6,18 +6,20 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <math.h>
 
 #include "packet.hpp"
 
 // tamanho máximo de arquivo em bytes
-#define MAX_FILE_SIZE 65536
+
 
 #define PORT 4000
 // rodar com ./client localhost
 //s
 
+/*
 int send_file(int socket, const char* path) {
-    char packet_buffer[PACKET_SIZE];
+    char packet_buffer[SIZE_PACKET];
     char file_buffer[MAX_FILE_SIZE];
     FILE * file = fopen(path, "r+");
 
@@ -30,23 +32,23 @@ int send_file(int socket, const char* path) {
     // cria um pacote com o conteúdo lido do arquivo
     Packet packet = create_packet(1,1,1,1,file_buffer);
 
-    bzero(packet_buffer,PACKET_SIZE);
-    // serializa o pacote
+    bzero(packet_buffer,SIZE_PACKET);
+    
     serialize_packet(packet, packet_buffer);
     printf("Sending packet:\n");
     print_packet(packet);
 
 
     // manda o pacote
-	/* write in the socket */
-	  int n = write(socket, packet_buffer,PACKET_SIZE);
-    bzero(packet_buffer,PACKET_SIZE);
+	// write in the socket 
+	  int n = write(socket, packet_buffer,SIZE_PACKET);
+    bzero(packet_buffer,SIZE_PACKET);
     if (n < 0)
 		  return -1;
 
     return 0;
     
-}
+} */
 
 int main(int argc, char *argv[])
 {
@@ -89,12 +91,13 @@ int main(int argc, char *argv[])
     // remove \n no final da string de entrada
     filePath[strcspn(filePath, "\n")] = 0;
 
-    send_file(sockfd,filePath);
+    send_file(filePath,sockfd);
+    
 
 	/* read from the socket */
     n = read(sockfd, buffer, 256);
     if (n < 0)
-		printf("ERROR reading from socket\n");
+		printf("ERROR reading from socket in receive_file\n");
 
     printf("%s\n",buffer);
 
