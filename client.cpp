@@ -27,30 +27,17 @@ int send_file(int socket, const char* path) {
     fgets(file_buffer,MAX_FILE_SIZE, file);
 
 
-
-    // // DEBUG ZONE 
-    // printf("packet size: %d", PACKET_SIZE);
-
-
-    Packet packet = create_packet(257,256,65535,65280,file_buffer);
+    // cria um pacote com o conteúdo lido do arquivo
+    Packet packet = create_packet(1,1,1,1,file_buffer);
 
     bzero(packet_buffer,PACKET_SIZE);
+    // serializa o pacote
     serialize_packet(packet, packet_buffer);
-    print_packet_serialized(packet_buffer);
-
     printf("Sending packet:\n");
     print_packet(packet);
 
-    Packet new_packet = deserialize_packet(packet_buffer);
-    printf("Deserialized packet:\n");
-    print_packet(new_packet);
 
-    
-
-    
-    //exit(0);
-    // // DEBUG ZONE END
-
+    // manda o pacote
 	/* write in the socket */
 	  int n = write(socket, packet_buffer,PACKET_SIZE);
     bzero(packet_buffer,PACKET_SIZE);
@@ -102,7 +89,7 @@ int main(int argc, char *argv[])
     // remove \n no final da string de entrada
     filePath[strcspn(filePath, "\n")] = 0;
 
-    send_file(sockfd,"a.txt");
+    send_file(sockfd,filePath);
 
 	/* read from the socket */
     n = read(sockfd, buffer, 256);

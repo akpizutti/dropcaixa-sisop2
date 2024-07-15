@@ -43,26 +43,29 @@ Packet create_packet(int type, int seqn, int total_size, int length, char* paylo
 void serialize_packet(Packet data, char* buffer){
     int offset = 0;
 
+    // sintaxe das operações bitwise é big-endian, mesmo que no hardware seja little-endian
     buffer[offset] = (char)(data.type & 0xff);
     buffer[offset+1] = (char)(data.type >> 8);
     offset += sizeof(data.type);
-    //strcpy(buffer+offset, reinterpret_cast<char*>(&data.seqn));
+
     buffer[offset] = (char)(data.seqn & 0xff);
     buffer[offset+1] = (char)(data.seqn >> 8);
     offset += sizeof(data.seqn);
-    //strcpy(buffer+offset, reinterpret_cast<char*>(&data.total_size));
+
     buffer[offset] = (char)(data.total_size & 0xff);
-    buffer[offset+1] = (char)(data.total_size >> 8);
-    buffer[offset+2] = 0; // TODO <-----------------------------------------
-    buffer[offset+3] = 0;
+    buffer[offset+1] = (char)((data.total_size >> 8) & 0xff);
+    buffer[offset+2] = (char)((data.total_size >> 16) & 0xff);
+    buffer[offset+3] = (char)((data.total_size >> 24) & 0xff);
     offset += sizeof(data.total_size);
-    //strcpy(buffer+offset, reinterpret_cast<char*>(&data.length));
+
     buffer[offset] = (char)(data.length & 0xff);
     buffer[offset+1] = (char)(data.length >> 8);
     offset += sizeof(data.length);
+
     strcpy(buffer+offset, data.payload);
     offset += MAX_PAYLOAD_SIZE;
-    buffer[offset] = 0;
+    buffer[offset] = 0; //terminar payload com null (pode ser que precise terminar com outro caractere)
+
     return;
 }
 
@@ -76,7 +79,7 @@ Packet deserialize_packet(char* buffer){
     offset += sizeof(ret.type);
     ret.seqn = ((buffer[0+offset] & 0xff) + (buffer[1+offset] << 8)); 
     offset += sizeof(ret.seqn);
-    ret.total_size = buffer[0+offset] + (buffer[1+offset] << 8) + (buffer[2+offset] << 16) + (buffer[3+offset] << 24); //TODO <-----------------------------
+    ret.total_size = (buffer[0+offset] & 0xff) + ((buffer[1+offset] << 8) & 0xff00) + ((buffer[2+offset] << 16) & 0xff0000) + ((buffer[3+offset] << 24) & 0xff000000); //TODO <-----------------------------
     offset += sizeof(ret.total_size);
     ret.length = ((buffer[0+offset] & 0xff) + (buffer[1+offset] << 8)); 
     offset += sizeof(ret.length);

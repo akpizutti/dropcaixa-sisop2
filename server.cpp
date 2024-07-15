@@ -56,7 +56,6 @@ void *handle_client(void *arg)
 			Packet packet = deserialize_packet(buffer);
 			printf("Received packet:\n");
 			print_packet(packet);
-			print_packet_serialized(buffer);
 
 			message = write(client_socket, i_gotchu_message, strlen(i_gotchu_message));
 			if (message < 0)
