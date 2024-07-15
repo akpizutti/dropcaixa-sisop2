@@ -7,8 +7,8 @@ client: packet
 monitor:
 	gcc -o monitor monitor.cpp
 
-server:
-	gcc -o server server.cpp
+server: packet
+	gcc -o server server.cpp packet.o
 
 packet: 
 	gcc -c -o packet.o packet.cpp

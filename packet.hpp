@@ -14,8 +14,13 @@ typedef struct packet{
     char* payload;    //Dados do pacote
 } Packet;
 
-void serialize_packet(Packet data, char* buffer);
+void print_packet(Packet packet);
+void print_packet_serialized(char* buffer);
 Packet create_packet(int type, int seqn, int total_size, int length, char* payload);
+void serialize_packet(Packet data, char* buffer);
+Packet deserialize_packet(char* buffer);
+
+
 
 
 #endif
