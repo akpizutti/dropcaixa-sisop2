@@ -2,6 +2,8 @@
 #define _PACKET_H_
 
 #include <cstdint>
+#include <iostream>
+#include <string>
 
 // definição de tipos de pacotes
 #define PACKET_FILE_SIGNAL 1 // pacote que indica que o próximo será um PACKET_FILE_NAME. payload contém nome do arquivo
@@ -21,20 +23,33 @@ typedef struct packet{
     char* payload;          //Dados do pacote
 } Packet;
 
-// printa o conteúdo de uma struct de pacote, para debugging
-void print_packet(Packet packet);
+class Packet{
+    private:
+        uint16_t type;          //Tipo do pacote
+        uint16_t seqn;          //Número de sequência
+        uint32_t total_size;    //Número total de fragmentos
+        uint16_t length;        //Comprimento do payload
+        std::array<char, MAX_PAYLOAD_SIZE> payload;          //Dados do pacote
+    public:
+        //construtores
+        Packet(uint16_t type, uint16_t seqn, uint32_t total_size, uint16_t length, char* payload);
+
+        // transforma uma instancia de pacote em uma sequência de bytes que pode ser enviada pelo socket
+        void serialize_packet(char* buffer);
+        // transforma uma sequência de bytes em uma instancia de pacote
+        Packet deserialize_packet(char* serialized);
+
+        friend std::ostream& operator<<(std::ostream&, const Packet& p);
+
+        
+};
+
+
+
 // printa o conteúdo de um pacote serializado, para debugging
 void print_packet_serialized(char* buffer);
 
-//inicializa uma struct de pacote (parece um construtor mas não é)
-Packet create_packet(int type, int seqn, int total_size, int length, char* payload);
 
-// transforma uma struct de pacote em uma sequência de bytes que pode ser enviada pelo socket (retorno é no parâmetro buffer)
-// valores numéricos são representados em little-endian (byte menos significativo primeiro)
-void serialize_packet(Packet data, char* buffer);
-
-// transforma uma sequência de bits em uma struct de pacote
-Packet deserialize_packet(char* buffer);
 
 // envia um arquivo para o socket especificado
 int send_file(char* filePath, int socket);
