@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <math.h>
 #include <libgen.h>
+#include <iostream>
 
 void print_packet(Packet packet){
     printf("Type: %d\n", packet.type);
@@ -36,7 +37,7 @@ Packet create_packet(int type, int seqn, int total_size, int length, char* paylo
     ret.length = length;
     ret.payload = (char*) malloc(MAX_PAYLOAD_SIZE* sizeof(char));
     if(payload != NULL){
-        strcpy(ret.payload, payload);
+        memcpy(ret.payload, payload, MAX_PAYLOAD_SIZE);
     }
     else {
         bzero(ret.payload, MAX_PAYLOAD_SIZE);
@@ -95,6 +96,42 @@ Packet deserialize_packet(char* buffer){
 
 }
 
+int send_packet(Packet packet, int socket){
+    char buffer[SIZE_PACKET];
+    int n;
+    //print_packet(packet);
+    bzero(buffer,SIZE_PACKET);
+    serialize_packet(packet, buffer);
+    n = write(socket, buffer,SIZE_PACKET);
+    //std::cout << "Sent " << n << " bytes of packet " << packet.seqn << std::endl;
+    if (n < 0){
+        printf("Send error.\n");
+        return -1;
+    }
+    return 0;
+}
+
+Packet receive_packet(int socket){
+    int n;
+    char buffer[SIZE_PACKET];
+
+    bzero(buffer, SIZE_PACKET);
+
+    n = read(socket, buffer, SIZE_PACKET);
+    if (n == 0)
+    {
+        printf("Client disconnected.\n");
+        return create_packet(-1,-1,-1,-1,NULL);
+    }
+    else if (n == -1)
+    {
+        perror("ERROR reading from socket");
+        return create_packet(-1,-1,-1,-1,NULL);
+    }
+
+    return deserialize_packet(buffer);
+}
+
 
 int send_file(char* file_path, int socket){
     char packet_buffer[SIZE_PACKET];
@@ -115,13 +152,7 @@ int send_file(char* file_path, int socket){
 
     // enviar packet de signal para recipiente
     Packet signal_packet = create_packet(PACKET_FILE_SIGNAL, 0, 1, strlen(filename), filename);
-    bzero(packet_buffer,SIZE_PACKET);
-    serialize_packet(signal_packet, packet_buffer);
-    n = write(socket, packet_buffer,SIZE_PACKET);
-    if (n < 0){
-        printf("Send error.\n");
-        return -1;
-    }
+    send_packet(signal_packet,socket);
     free(signal_packet.payload);
 
 
@@ -153,16 +184,10 @@ int send_file(char* file_path, int socket){
     // manda fragmentos do arquivo se for maior que MAX_PAYLOAD_SIZE
     while(bytes_to_read > MAX_PAYLOAD_SIZE){
         Packet packet = create_packet(PACKET_FILE_DATA,seq,total_size,MAX_PAYLOAD_SIZE,file_buffer+seq*MAX_PAYLOAD_SIZE);
-        bzero(packet_buffer,SIZE_PACKET);
-        serialize_packet(packet, packet_buffer);
+
 
         //printf("Trying to send file fragment number %d\n", seq);
-        n = write(socket, packet_buffer,SIZE_PACKET);
-        bzero(packet_buffer,SIZE_PACKET);
-        if (n < 0){
-            printf("Send error.\n");
-            return -1;
-        }
+        send_packet(packet,socket);
 
         seq++;
         bytes_to_read -= MAX_PAYLOAD_SIZE;
@@ -172,24 +197,18 @@ int send_file(char* file_path, int socket){
     // manda último fragmento se houver
     if(bytes_to_read > 0){
         Packet packet = create_packet(PACKET_FILE_DATA,seq,total_size,bytes_to_read,file_buffer+seq*MAX_PAYLOAD_SIZE);
-        bzero(packet_buffer,SIZE_PACKET);
-        serialize_packet(packet, packet_buffer);
 
         //printf("Payload of this packet: %s\n", packet.payload);
         //printf("strlen of payload: %d\n", strlen(packet.payload));
         //printf("bytes_to_read: %d\n", bytes_to_read);
         //printf("Trying to send file fragment number %d\n", seq);
         
-        n = write(socket, packet_buffer,SIZE_PACKET);
+        send_packet(packet,socket);
         //printf("Sent file fragment number %d\n", seq);
         //bzero(packet_buffer,SIZE_PACKET);
 
-        if (n < 0){
-            printf("Send error.\n");
-            return -1;
-        }
         // evitar um memory leak
-        //free(packet.payload);
+        free(packet.payload);
     }
 
 
@@ -218,19 +237,10 @@ int receive_file(char* buffer, int socket){
     int bytes_read = 0;
 
     //receber primeiro pacote
-    message = read(socket, packet_buffer, SIZE_PACKET);
-    if (message == 0)
-    {
-        printf("Client disconnected.\n");
-        return -1;
-    }
-    else if (message == -1)
-    {
-        perror("ERROR reading from socket");
-        return -1;
-    }
 
-    Packet packet = deserialize_packet(packet_buffer);
+
+    Packet packet = receive_packet(socket);
+
     if(packet.type != PACKET_FILE_DATA){
         printf("Wrong packet type received in receive_file.\n");
         return -1;
@@ -247,19 +257,8 @@ int receive_file(char* buffer, int socket){
 
     //recebe o resto dos pacotes
     for(int i=1 ; i < total_size; i++){
-        bzero(packet_buffer, SIZE_PACKET);
-        message = read(socket, packet_buffer, SIZE_PACKET);
-        if (message == 0)
-        {
-            printf("Client disconnected.\n");
-            return -1;
-        }
-        else if (message == -1)
-        {
-            perror("ERROR reading from socket");
-            return -1;
-        }
-        Packet packet = deserialize_packet(packet_buffer);
+        Packet packet = receive_packet(socket);
+        
         if(packet.type != PACKET_FILE_DATA){
             printf("Wrong packet type received in receive_file.\n");
             return -1;

@@ -68,7 +68,7 @@ void *handle_client(void *arg)
 				default:
 					printf("Received invalid packet type.\n");
 			}
-
+			
 			message = write(client_socket, i_gotchu_message, strlen(i_gotchu_message));
 			if (message < 0)
 				printf("ERROR writing to socket");

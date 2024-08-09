@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 	/* read from the socket */
     n = read(sockfd, buffer, 256);
     if (n < 0)
-		printf("ERROR reading from socket in receive_file\n");
+		printf("ERROR reading from socket\n");
 
     printf("%s\n",buffer);
 

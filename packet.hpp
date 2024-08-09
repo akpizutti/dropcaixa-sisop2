@@ -36,6 +36,10 @@ void serialize_packet(Packet data, char* buffer);
 // transforma uma sequência de bits em uma struct de pacote
 Packet deserialize_packet(char* buffer);
 
+int send_packet(Packet packet, int socket);
+
+Packet receive_packet(int socket);
+
 // envia um arquivo para o socket especificado
 int send_file(char* filePath, int socket);
 
