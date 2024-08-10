@@ -13,5 +13,11 @@ server: packet
 packet: 
 	g++ -c -o packet.o packet.cpp -lm
 
+users:
+	g++ -c -o users.o users.cpp -lm
+
+test: users
+	g++ -o test test.cpp users.o -lm
+
 clean:
-	rm client monitor server *.o
+	rm client monitor server test *.o
