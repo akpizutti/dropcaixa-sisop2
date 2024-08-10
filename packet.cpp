@@ -99,10 +99,20 @@ Packet deserialize_packet(char* buffer){
 int send_packet(Packet packet, int socket){
     char buffer[SIZE_PACKET];
     int n;
+    int bytes_to_write = SIZE_PACKET;
+    int offset = 0;
+
     //print_packet(packet);
     bzero(buffer,SIZE_PACKET);
     serialize_packet(packet, buffer);
-    n = write(socket, buffer,SIZE_PACKET);
+
+    while(bytes_to_write > 0){
+        n = write(socket, buffer + offset, SIZE_PACKET - offset);
+        bytes_to_write -= n;
+        offset += n;
+    }
+
+    
     //std::cout << "Sent " << n << " bytes of packet " << packet.seqn << std::endl;
     if (n < 0){
         printf("Send error.\n");
@@ -115,9 +125,19 @@ Packet receive_packet(int socket){
     int n;
     char buffer[SIZE_PACKET];
 
+    int bytes_to_receive = SIZE_PACKET;
+    int offset = 0;
+
     bzero(buffer, SIZE_PACKET);
 
-    n = read(socket, buffer, SIZE_PACKET);
+    while(bytes_to_receive > 0){
+        n = read(socket, buffer+offset, SIZE_PACKET - offset);
+        bytes_to_receive -= n;
+        offset += n;
+
+    }
+
+    
     if (n == 0)
     {
         printf("Client disconnected.\n");
