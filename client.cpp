@@ -6,10 +6,49 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <math.h>
+
+#include "packet.hpp"
+
+// tamanho máximo de arquivo em bytes
+
 
 #define PORT 4000
 // rodar com ./client localhost
 //s
+
+/*
+int send_file(int socket, const char* path) {
+    char packet_buffer[SIZE_PACKET];
+    char file_buffer[MAX_FILE_SIZE];
+    FILE * file = fopen(path, "r+");
+
+    if (file == NULL) {printf("File error\n"); close(socket); exit(0);}
+
+    bzero(file_buffer,MAX_FILE_SIZE);
+    fgets(file_buffer,MAX_FILE_SIZE, file);
+
+
+    // cria um pacote com o conteúdo lido do arquivo
+    Packet packet = create_packet(1,1,1,1,file_buffer);
+
+    bzero(packet_buffer,SIZE_PACKET);
+    
+    serialize_packet(packet, packet_buffer);
+    printf("Sending packet:\n");
+    print_packet(packet);
+
+
+    // manda o pacote
+	// write in the socket 
+	  int n = write(socket, packet_buffer,SIZE_PACKET);
+    bzero(packet_buffer,SIZE_PACKET);
+    if (n < 0)
+		  return -1;
+
+    return 0;
+    
+} */
 
 int main(int argc, char *argv[])
 {
@@ -18,6 +57,9 @@ int main(int argc, char *argv[])
     struct hostent *server;
 
     char buffer[256];
+    char filePath[256];
+
+    
     if (argc < 2) {
 		fprintf(stderr,"usage %s hostname\n", argv[0]);
 		exit(0);
@@ -37,20 +79,20 @@ int main(int argc, char *argv[])
 	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
 	bzero(&(serv_addr.sin_zero), 8);
 
+    
+
+
 
 	if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
         printf("ERROR connecting\n");
 
-    printf("Enter the message: ");
-    bzero(buffer, 256);
-    fgets(buffer, 256, stdin);
+    printf("Enter the path of file to send: ");
+    fgets(filePath, 256, stdin);
+    // remove \n no final da string de entrada
+    filePath[strcspn(filePath, "\n")] = 0;
 
-	/* write in the socket */
-	n = write(sockfd, buffer, strlen(buffer));
-    if (n < 0)
-		printf("ERROR writing to socket\n");
-
-    bzero(buffer,256);
+    send_file(filePath,sockfd);
+    
 
 	/* read from the socket */
     n = read(sockfd, buffer, 256);

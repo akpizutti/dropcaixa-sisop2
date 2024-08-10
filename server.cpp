@@ -8,6 +8,8 @@
 #include <netinet/in.h>
 #include <pthread.h>
 
+#include "packet.hpp"
+
 // beej nao rodou no lab (erro de comp)
 //  rodar com ./server e rodar client
 // s
@@ -29,6 +31,7 @@ void *handle_client(void *arg)
 {
 	int client_socket = *((int *)arg);
 	char buffer[1024] = {0};
+	char file_buffer[MAX_FILE_SIZE];
 	char *i_gotchu_message = "I got your message!\n";
 
 	// Read data from client
@@ -51,7 +54,21 @@ void *handle_client(void *arg)
 		else
 		{
 			printf("Here is the message: %s\n", buffer);
+			Packet packet = deserialize_packet(buffer);
+			// printf("Received packet:\n");
+			// print_packet(packet);
 
+			switch(packet.type){
+				case PACKET_FILE_SIGNAL:
+					//save filename from packet.payload here
+					receive_file(file_buffer, client_socket);
+
+					printf("File received: \n%s\n", file_buffer);
+					break;
+				default:
+					printf("Received invalid packet type.\n");
+			}
+			
 			message = write(client_socket, i_gotchu_message, strlen(i_gotchu_message));
 			if (message < 0)
 				printf("ERROR writing to socket");
