@@ -4,3 +4,4 @@ monitor
 *.o
 /sync_dir*/
 *.txt
+workspace.code-workspace
