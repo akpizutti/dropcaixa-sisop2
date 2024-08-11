@@ -1,3 +1,6 @@
+#include "users.hpp"
+#include "packet.hpp"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,8 +10,8 @@
 #include <sys/stat.h>
 #include <netinet/in.h>
 #include <pthread.h>
-
-#include "packet.hpp"
+#include <vector>
+#include <iostream>
 
 // beej nao rodou no lab (erro de comp)
 //  rodar com ./server e rodar client
@@ -58,17 +61,18 @@ void *handle_client(void *arg)
 			// printf("Received packet:\n");
 			// print_packet(packet);
 
-			switch(packet.type){
-				case PACKET_FILE_SIGNAL:
-					//save filename from packet.payload here
-					receive_file(file_buffer, client_socket);
+			switch (packet.type)
+			{
+			case PACKET_FILE_SIGNAL:
+				// save filename from packet.payload here
+				receive_file(file_buffer, client_socket);
 
-					printf("File received: \n%s\n", file_buffer);
-					break;
-				default:
-					printf("Received invalid packet type.\n");
+				printf("File received: \n%s\n", file_buffer);
+				break;
+			default:
+				printf("Received invalid packet type.\n");
 			}
-			
+
 			message = write(client_socket, i_gotchu_message, strlen(i_gotchu_message));
 			if (message < 0)
 				printf("ERROR writing to socket");
@@ -91,8 +95,20 @@ void *handle_client(void *arg)
 	pthread_exit(NULL);
 }
 
+void *handle_inotify(void *arg)
+{
+	std::cout << "Inotify thread started." << std::endl;
+	// inotify logic
+	// TODO
+
+	pthread_exit(NULL);
+}
+
+std::vector<User *> connected_users;
+
 int main(int argc, char *argv[])
 {
+	User *test_user = new User("Paulo");
 
 	// SOCKET LOGIC
 	int sockfd, newsockfd, n;
@@ -112,6 +128,14 @@ int main(int argc, char *argv[])
 		printf("ERROR on binding");
 
 	// SYNCING SERVER AND DEVICES LOGIC
+
+	// Thread para inotify
+	pthread_t inotify_thread;
+	if (pthread_create(&inotify_thread, NULL, handle_inotify, NULL) != 0)
+	{
+		perror("pthread_create error");
+		exit(1);
+	}
 
 	// CREATES SYNC_DIR LOGIC
 	const char *folder;
@@ -136,20 +160,45 @@ int main(int argc, char *argv[])
 	{
 		printf("Waiting for connections...\n");
 
-		clilen = sizeof(struct sockaddr_in);
-		if ((newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen)) == -1)
-			printf("ERROR on accept");
-
-		printf("New client connected.\n");
-
-		// Create a new thread to handle the client
-		pthread_t thread_id;
-		if (pthread_create(&thread_id, NULL, handle_client, &newsockfd) != 0)
+		if (connected_users.size() >= MAX_CLIENTS)
 		{
-			perror("pthread_create error");
-			//            close(newsockfd);
+			std::cout << "Maximum number of clients reached" << std::endl;
+			send(sockfd, "Maximum number of clients reached", 30, 0);
+			close(sockfd);
 		}
-		printf("Client thread successfully created.\n");
+		else
+		{
+			clilen = sizeof(struct sockaddr_in);
+			if ((newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen)) == -1)
+				printf("ERROR on accept");
+
+			Packet user_packet;
+			user_packet = receive_packet(newsockfd);
+			if (user_packet.type != PACKET_USER_ID)
+			{
+				std::cout << "Invalid packet type received. Expected user ID\n";
+				close(newsockfd);
+			}
+			else
+			{
+				std::cout << user_packet.payload;
+				User *new_user = new User(user_packet.payload);
+				new_user->set_connected_devices(1);
+				// TODO: não deixar conectar mais de 2 clientes por user
+
+				connected_users.push_back(new_user);
+				printf("New client connected.\n");
+
+				// Create a new thread to handle the client
+				pthread_t thread_id;
+				if (pthread_create(&thread_id, NULL, handle_client, &newsockfd) != 0)
+				{
+					perror("pthread_create error");
+					//            close(newsockfd);
+				}
+				printf("Client thread successfully created.\n");
+			}
+		}
 
 		// bzero(buffer, 256);
 	}

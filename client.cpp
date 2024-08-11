@@ -7,15 +7,15 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <math.h>
+#include <iostream>
 
 #include "packet.hpp"
 
 // tamanho máximo de arquivo em bytes
 
-
 #define PORT 4000
 // rodar com ./client localhost
-//s
+// s
 
 /*
 int send_file(int socket, const char* path) {
@@ -33,21 +33,21 @@ int send_file(int socket, const char* path) {
     Packet packet = create_packet(1,1,1,1,file_buffer);
 
     bzero(packet_buffer,SIZE_PACKET);
-    
+
     serialize_packet(packet, packet_buffer);
     printf("Sending packet:\n");
     print_packet(packet);
 
 
     // manda o pacote
-	// write in the socket 
-	  int n = write(socket, packet_buffer,SIZE_PACKET);
+    // write in the socket
+      int n = write(socket, packet_buffer,SIZE_PACKET);
     bzero(packet_buffer,SIZE_PACKET);
     if (n < 0)
-		  return -1;
+          return -1;
 
     return 0;
-    
+
 } */
 
 int main(int argc, char *argv[])
@@ -59,48 +59,48 @@ int main(int argc, char *argv[])
     char buffer[256];
     char filePath[256];
 
-    
-    if (argc < 2) {
-		fprintf(stderr,"usage %s hostname\n", argv[0]);
-		exit(0);
+    if (argc < 2) // mudar pra 3 quando tiver porta p escolher
+    {
+        std::cerr << "Usage: " << argv[0] << " <username> <server_ip_address> <port>" << std::endl;
+        exit(0);
     }
 
-	server = gethostbyname(argv[1]);
-	if (server == NULL) {
-        fprintf(stderr,"ERROR, no such host\n");
+    server = gethostbyname(argv[2]);
+    if (server == NULL)
+    {
+        fprintf(stderr, "ERROR, no such host\n");
         exit(0);
     }
 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
         printf("ERROR opening socket\n");
 
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(PORT);
-	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
-	bzero(&(serv_addr.sin_zero), 8);
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(PORT);
+    serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
+    bzero(&(serv_addr.sin_zero), 8);
 
-    
-
-
-
-	if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
+    if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
         printf("ERROR connecting\n");
+
+    // envia username para o server
+    Packet id = create_packet(PACKET_USER_ID, 0, 0, 1, argv[1]);
+    send_packet(id, sockfd);
 
     printf("Enter the path of file to send: ");
     fgets(filePath, 256, stdin);
     // remove \n no final da string de entrada
     filePath[strcspn(filePath, "\n")] = 0;
 
-    send_file(filePath,sockfd);
-    
+    send_file(filePath, sockfd);
 
-	/* read from the socket */
+    /* read from the socket */
     n = read(sockfd, buffer, 256);
     if (n < 0)
-		printf("ERROR reading from socket\n");
+        printf("ERROR reading from socket\n");
 
-    printf("%s\n",buffer);
+    printf("%s\n", buffer);
 
-	close(sockfd);
+    close(sockfd);
     return 0;
 }

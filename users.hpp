@@ -1,5 +1,5 @@
-#ifndef _PACKET_H_
-#define _PACKET_H_
+#ifndef _USERS_H_
+#define _USERS_H_
 
 #include <string>
 
