@@ -54,7 +54,7 @@ int send_file(int socket, const char* path) {
 
 void handle_user_commands(char command, int sockfd)
 {
-    // Read user input from the console
+
     std::string file_path;
     // Handle different commands
     switch (command)
@@ -67,7 +67,20 @@ void handle_user_commands(char command, int sockfd)
         break;
 
     case 'g':
+        const char *folder;
+        folder = "./sync_dir";
+        struct stat sb;
 
+        if (stat(folder, &sb) == 0 && S_ISDIR(sb.st_mode))
+        {
+            printf("Directory exists\n");
+        }
+        else
+        {
+            printf("Creating sync_dir...\n");
+            mkdir(folder, 0700);
+            printf("sync_dir created!\n");
+        }
         break;
 
     case 'u':
@@ -80,11 +93,6 @@ void handle_user_commands(char command, int sockfd)
         send_file(file_path.data(), sockfd);
 
         break;
-
-    case 'q':
-        // Handle quit command
-        // send(sockfd, "quit", 4, 0);
-        return;
 
     default:
         // Handle invalid command
@@ -148,16 +156,20 @@ int main(int argc, char *argv[])
     {
         print_available_commands();
         std::cin >> command;
-        handle_user_commands(command, sockfd);
+        if (command != 'q')
+        {
+            handle_user_commands(command, sockfd);
+        }
     }
 
     /* read from the socket */
-    n = read(sockfd, buffer, 256);
-    if (n < 0)
-        printf("ERROR reading from socket\n");
+    // n = read(sockfd, buffer, 256);
+    // if (n < 0)
+    //     printf("ERROR reading from socket\n");
 
-    printf("%s\n", buffer);
+    // printf("%s\n", buffer);
 
+    std::cout << "Disconnecting..." << std::endl;
     close(sockfd);
     return 0;
 }
