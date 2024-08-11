@@ -4,11 +4,13 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <math.h>
 #include <iostream>
-
+#include <string>
+#include <unistd.h>
 #include "packet.hpp"
 
 // tamanho máximo de arquivo em bytes
@@ -50,6 +52,61 @@ int send_file(int socket, const char* path) {
 
 } */
 
+void handle_user_commands(char command, int sockfd)
+{
+    // Read user input from the console
+    std::string file_path;
+    // Handle different commands
+    switch (command)
+    {
+
+    case 'l':
+        // Handle list files command
+        // ...
+
+        break;
+
+    case 'g':
+
+        break;
+
+    case 'u':
+
+        std::cout << "Enter the path of file to send: ";
+
+        std::cin >> file_path;
+        std::cout << "\npath: " << file_path;
+
+        send_file(file_path.data(), sockfd);
+
+        break;
+
+    case 'q':
+        // Handle quit command
+        // send(sockfd, "quit", 4, 0);
+        return;
+
+    default:
+        // Handle invalid command
+        std::cout << "Invalid command\n";
+        break;
+    }
+}
+
+void print_available_commands()
+{
+    std::cout << "Available commands:\n";
+    std::cout << "- u: upload file\n";
+    std::cout << "- f: download file\n";
+    std::cout << "- d: delete file\n";
+    std::cout << "- s: list_server\n";
+    std::cout << "- c: list_client\n";
+    std::cout << "- g: get_sync_dir\n";
+    std::cout << "- q: quit\n";
+
+    return;
+}
+
 int main(int argc, char *argv[])
 {
     int sockfd, n;
@@ -57,7 +114,6 @@ int main(int argc, char *argv[])
     struct hostent *server;
 
     char buffer[256];
-    char filePath[256];
 
     if (argc < 2) // mudar pra 3 quando tiver porta p escolher
     {
@@ -87,12 +143,13 @@ int main(int argc, char *argv[])
     Packet id = create_packet(PACKET_USER_ID, 0, 0, 1, argv[1]);
     send_packet(id, sockfd);
 
-    printf("Enter the path of file to send: ");
-    fgets(filePath, 256, stdin);
-    // remove \n no final da string de entrada
-    filePath[strcspn(filePath, "\n")] = 0;
-
-    send_file(filePath, sockfd);
+    char command = 0;
+    while (command != 'q')
+    {
+        print_available_commands();
+        std::cin >> command;
+        handle_user_commands(command, sockfd);
+    }
 
     /* read from the socket */
     n = read(sockfd, buffer, 256);

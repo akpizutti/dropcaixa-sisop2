@@ -11,4 +11,17 @@ int main(){
     int a = MAX_PAYLOAD_SIZE;
 
     std::cout << test_user->get_username() << std::endl;
+    char command;
+    std::string path;
+
+    std::cout << "enter command: ";
+    std::cin >> command;
+    std::cout << "enter filename: ";
+    std::cin >> path;
+
+    std::cout <<"\n path: " << path;
+
+
+
+    return(0);
 }
