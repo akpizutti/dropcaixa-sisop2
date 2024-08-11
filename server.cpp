@@ -12,6 +12,7 @@
 #include <pthread.h>
 #include <vector>
 #include <iostream>
+#include <iterator>
 
 // beej nao rodou no lab (erro de comp)
 //  rodar com ./server e rodar client
@@ -29,10 +30,24 @@
 #define PORT 4000
 #define MAX_CLIENTS 5
 
+struct thread_args{
+	int socket;
+	std::string username;
+};
+
 // Function to handle each client connection
 void *handle_client(void *arg)
 {
-	int client_socket = *((int *)arg);
+	struct thread_args args = *((struct thread_args*) arg);
+	//int client_socket = *((int *)arg);
+	int client_socket = args.socket;
+
+
+
+	std::string username = args.username;
+
+	std::cout << "Username recebido na handle_client: " << username << std::endl;
+
 	char buffer[1024] = {0};
 	char file_buffer[MAX_FILE_SIZE];
 	char *i_gotchu_message = "I got your message!\n";
@@ -104,7 +119,15 @@ void *handle_inotify(void *arg)
 	pthread_exit(NULL);
 }
 
-std::vector<User *> connected_users;
+void print_users(std::vector<User*> users_list){
+	std::cout << "Connected Users:" << std::endl;
+				for(int i=0; i < users_list.size(); i++){
+					std::cout << users_list[i]->get_username() << std::endl;
+				}
+
+}
+
+
 
 int main(int argc, char *argv[])
 {
@@ -115,6 +138,8 @@ int main(int argc, char *argv[])
 	socklen_t clilen;
 	char buffer[256];
 	struct sockaddr_in serv_addr, cli_addr;
+	
+	std::vector<User *> connected_users;
 
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 		printf("ERROR opening socket");
@@ -181,17 +206,24 @@ int main(int argc, char *argv[])
 			}
 			else
 			{
-				std::cout << user_packet.payload;
+				
 				User *new_user = new User(user_packet.payload);
 				new_user->set_connected_devices(1);
 				// TODO: não deixar conectar mais de 2 clientes por user
 
+				
+				//printf("New client connected.\n");
 				connected_users.push_back(new_user);
-				printf("New client connected.\n");
+				std::cout << "New client connected: " << user_packet.payload << std::endl;
+
+				print_users(connected_users);
+
+				
 
 				// Create a new thread to handle the client
+				struct thread_args args = {newsockfd, new_user->get_username()};
 				pthread_t thread_id;
-				if (pthread_create(&thread_id, NULL, handle_client, &newsockfd) != 0)
+				if (pthread_create(&thread_id, NULL, handle_client, &args) != 0)
 				{
 					perror("pthread_create error");
 					//            close(newsockfd);
