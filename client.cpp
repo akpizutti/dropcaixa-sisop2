@@ -21,7 +21,6 @@
 
 void *handle_inotify(void *arg)
 {
-    std::cout << "Inotify thread started." << std::endl;
     int length, i = 0;
     int inotifyfd;
     int inotifywd;

@@ -1,5 +1,6 @@
 #include "users.hpp"
 #include "packet.hpp"
+#include "utils.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +28,8 @@
 #define PORT 4000
 #define MAX_CLIENTS 5
 
+std::vector<User *> connected_users;
+
 struct thread_args
 {
 	int socket;
@@ -52,10 +55,15 @@ void *handle_client(void *arg)
 	while (1)
 	{
 		int message;
+		int filesize = 0;
+		std::string filename;
+		std::string save_path = "./sync_dir";
 		/* read from the socket */
 		message = read(client_socket, buffer, sizeof(buffer));
 		if (message == 0)
 		{
+			//connected_users.erase(std::remove(connected_users.begin(), connected_users.end(), username), connected_users.end());
+			//tirar device connected
 			printf("Client disconnected.\n");
 			break;
 		}
@@ -76,9 +84,13 @@ void *handle_client(void *arg)
 			{
 			case PACKET_FILE_SIGNAL:
 				// save filename from packet.payload here
-				receive_file(file_buffer, client_socket);
+				filename = packet.payload;
+				filesize = receive_file(file_buffer, client_socket);
 
-				printf("File received: \n%s\n", file_buffer);
+				std::cout << "Attempting to save file " << filename << std::endl;
+				save_file(save_path+"/"+filename, filesize, file_buffer);
+
+				//printf("File received: \n%s\n", file_buffer);
 				break;
 			default:
 				printf("Received invalid packet type.\n");
@@ -125,8 +137,6 @@ int main(int argc, char *argv[])
 	char buffer[256];
 	struct sockaddr_in serv_addr, cli_addr;
 
-	std::vector<User *> connected_users;
-
 	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 		printf("ERROR opening socket");
 
@@ -169,7 +179,7 @@ int main(int argc, char *argv[])
 			{
 
 				User *new_user = new User(user_packet.payload);
-				new_user->set_connected_devices(1);
+				new_user->set_connected_devices(1); 
 				// TODO: não deixar conectar mais de 2 clientes por user
 
 				connected_users.push_back(new_user);

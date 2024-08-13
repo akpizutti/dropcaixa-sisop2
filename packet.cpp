@@ -69,9 +69,9 @@ void serialize_packet(Packet data, char* buffer){
     buffer[offset+1] = (char)(data.length >> 8);
     offset += sizeof(data.length);
 
-    strcpy(buffer+offset, data.payload);
+    memcpy(buffer+offset, data.payload, data.length);
     offset += MAX_PAYLOAD_SIZE;
-    buffer[offset] = 0; //terminar payload com null (pode ser que precise terminar com outro caractere)
+    //buffer[offset] = 0; //terminar payload com null (pode ser que precise terminar com outro caractere)
 
     return;
 }
@@ -90,7 +90,7 @@ Packet deserialize_packet(char* buffer){
     offset += sizeof(ret.total_size);
     ret.length = ((buffer[0+offset] & 0xff) + (buffer[1+offset] << 8)); 
     offset += sizeof(ret.length);
-    strcpy(ret.payload, buffer+offset);
+    memcpy(ret.payload, buffer+offset, ret.length);
 
     //printf("hi\n");
     return ret;
@@ -268,6 +268,7 @@ int receive_file(char* buffer, int socket){
     int message;
     char packet_buffer[SIZE_PACKET];
     int bytes_read = 0;
+    //int filesize = 0;
 
     //receber primeiro pacote
 
@@ -280,6 +281,7 @@ int receive_file(char* buffer, int socket){
     }
 
     int total_size = packet.total_size;
+    //filesize += packet.length;
     //printf("Should receive %d packets.\n", total_size);
     //printf("Received fragment number %d\n", packet.seqn);
 
@@ -303,5 +305,5 @@ int receive_file(char* buffer, int socket){
     }
 
     printf("Finished receiving file.");
-    return 0;
+    return bytes_read;
 }

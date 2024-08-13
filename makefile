@@ -1,20 +1,23 @@
 all: client server monitor users
 
 
-client: packet
-	g++ -o client client.cpp packet.o -lm
+client: packet users utils
+	g++ -o client client.cpp packet.o users.o utils.o -lm
 
 monitor:
 	g++ -o monitor monitor.cpp -lm
 
-server: packet users
-	g++ -o server server.cpp packet.o users.o -lm
+server: packet users utils
+	g++ -o server server.cpp packet.o users.o utils.o -lm
 
 packet: 
 	g++ -c -o packet.o packet.cpp -lm
 
-users:
+users: 
 	g++ -c -o users.o users.cpp -lm
+
+utils:
+	g++ -c -o utils.o utils.cpp -lm
 
 test: users
 	g++ -o test test.cpp users.o -lm
