@@ -106,15 +106,6 @@ void *handle_client(void *arg)
 	pthread_exit(NULL);
 }
 
-void *handle_inotify(void *arg)
-{
-	std::cout << "Inotify thread started." << std::endl;
-	// inotify logic
-	// TODO
-
-	pthread_exit(NULL);
-}
-
 void print_users(std::vector<User *> users_list)
 {
 	std::cout << "Connected Users:" << std::endl;
@@ -148,15 +139,6 @@ int main(int argc, char *argv[])
 		printf("ERROR on binding");
 
 	// SYNCING SERVER AND DEVICES LOGIC
-
-	// Thread para inotify
-	pthread_t inotify_thread;
-	if (pthread_create(&inotify_thread, NULL, handle_inotify, NULL) != 0)
-	{
-		perror("pthread_create error");
-		exit(1);
-	}
-
 	// TCP LISTEN
 	listen(sockfd, MAX_CLIENTS);
 

@@ -8,6 +8,7 @@
 #include <math.h>
 #include <libgen.h>
 #include <iostream>
+#include <sys/stat.h>
 
 void print_packet(Packet packet){
     printf("Type: %d\n", packet.type);
@@ -159,6 +160,8 @@ int send_file(char* file_path, int socket){
     char* filename;
     long int numbytes = 0;
     int bytes_to_read;
+    struct stat attrib;
+
     FILE * file;
 
     int n;
@@ -170,10 +173,18 @@ int send_file(char* file_path, int socket){
     // obter nome do arquivo
     filename = basename(file_path);
 
+    // obter horario de modificação e criação do arquivo
+    stat(file_path,&attrib);
+    time_t modify_time = attrib.st_mtim.tv_sec;
+    time_t create_time = attrib.st_ctim.tv_sec;
+
+
     // enviar packet de signal para recipiente
     Packet signal_packet = create_packet(PACKET_FILE_SIGNAL, 0, 1, strlen(filename), filename);
     send_packet(signal_packet,socket);
     free(signal_packet.payload);
+
+    //Packet packet_mtime = create_packet(PACKET_FILE_MTIME, 1, 1, 1, );
 
 
     // obter comprimento do arquivo
@@ -230,6 +241,8 @@ int send_file(char* file_path, int socket){
         // evitar um memory leak
         free(packet.payload);
     }
+
+    fclose(file);
 
 
 

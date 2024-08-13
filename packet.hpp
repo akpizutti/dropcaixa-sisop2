@@ -2,11 +2,17 @@
 #define _PACKET_H_
 
 #include <cstdint>
+#include <string>
+#include <sys/stat.h>
 
 // definição de tipos de pacotes
 #define PACKET_FILE_SIGNAL 1 // pacote que indica que o próximo será um PACKET_FILE_NAME. payload contém nome do arquivo
 #define PACKET_FILE_DATA 2   // pacote que contém um arquivo ou fragmento de um arquivo
-#define PACKET_USER_ID 3
+#define PACKET_FILE_MTIME 3  // timestamp de modificação do arquivo
+#define PACKET_FILE_CTIME 4  // timestamp de criação do arquivo
+
+
+#define PACKET_USER_ID 6
 
 #define MAX_PAYLOAD_SIZE 256
 #define SIZE_PACKET 3 * sizeof(uint16_t) + sizeof(uint32_t) + MAX_PAYLOAD_SIZE * sizeof(char)
@@ -45,5 +51,8 @@ int send_file(char *filePath, int socket);
 
 // recebe um arquivo e coloca seu conteúdo em buffer
 int receive_file(char *buffer, int socket);
+
+// cliente pede um arquivo e o servidor manda
+int download_file(char* buffer, int socket, std::string filename);
 
 #endif

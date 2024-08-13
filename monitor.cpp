@@ -12,14 +12,14 @@
 int main(int argc, char **argv)
 {
     int length, i = 0;
-    int fd;
-    int wd;
+    int inotifyfd;
+    int inotifywd;
     char buffer[BUF_LEN];
     bool is_watching = true;
 
-    fd = inotify_init();
+    inotifyfd = inotify_init();
 
-    if (fd < 0)
+    if (inotifyfd < 0)
     {
         perror("inotify_init");
     }
@@ -27,9 +27,9 @@ int main(int argc, char **argv)
     while (is_watching == true)
     {
 
-        wd = inotify_add_watch(fd, "./sync_dir",
-                               IN_MODIFY | IN_CREATE | IN_DELETE);
-        length = read(fd, buffer, BUF_LEN);
+        inotifywd = inotify_add_watch(inotifyfd, "./sync_dir",
+                                      IN_MODIFY | IN_CREATE | IN_DELETE);
+        length = read(inotifyfd, buffer, BUF_LEN);
 
         if (length < 0)
         {
@@ -61,8 +61,8 @@ int main(int argc, char **argv)
         }
     }
 
-    (void)inotify_rm_watch(fd, wd); // <- remove watch
-    (void)close(fd);
+    (void)inotify_rm_watch(inotifyfd, inotifywd); // <- remove watch
+    (void)close(inotifyfd);
 
     return 0;
 }
