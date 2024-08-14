@@ -194,7 +194,7 @@ int main(int argc, char *argv[])
         printf("ERROR connecting\n");
 
     // envia username para o server
-    Packet id = create_packet(PACKET_USER_ID, 0, 0, 1, argv[1]);
+    Packet id = create_packet(PACKET_USER_ID, 0, 1, strlen(argv[1]), argv[1]);
     send_packet(id, sockfd);
 
     // Thread para inotify
