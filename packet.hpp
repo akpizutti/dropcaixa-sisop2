@@ -10,13 +10,14 @@
 #define PACKET_FILE_DATA 2   // pacote que contém um arquivo ou fragmento de um arquivo
 #define PACKET_FILE_MTIME 3  // timestamp de modificação do arquivo
 #define PACKET_FILE_CTIME 4  // timestamp de criação do arquivo
+#define PACKET_FILE_LENGTH 5 // comprimento em bytes do arquivo a ser enviado
 
 
 #define PACKET_USER_ID 6
 
 #define MAX_PAYLOAD_SIZE 256
 #define SIZE_PACKET 3 * sizeof(uint16_t) + sizeof(uint32_t) + MAX_PAYLOAD_SIZE * sizeof(char)
-#define MAX_FILE_SIZE 65536
+#define MAX_FILE_SIZE 1048576
 
 typedef struct packet
 {

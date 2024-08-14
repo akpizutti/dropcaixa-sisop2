@@ -49,6 +49,8 @@ void *handle_client(void *arg)
 
 	char buffer[1024] = {0};
 	char file_buffer[MAX_FILE_SIZE];
+	char *file_buffer_new;
+
 	char *i_gotchu_message = "I got your message!\n";
 
 	// Read data from client
@@ -80,15 +82,29 @@ void *handle_client(void *arg)
 			// printf("Received packet:\n");
 			// print_packet(packet);
 
+			Packet packet_filesize;
 			switch (packet.type)
 			{
 			case PACKET_FILE_SIGNAL:
 				// save filename from packet.payload here
 				filename = packet.payload;
-				filesize = receive_file(file_buffer, client_socket);
+				std::cout << "Will receive file " << filename << std::endl;
+				packet_filesize = receive_packet(client_socket);
+				filesize = bytes_to_long(packet_filesize.payload);
+
+				file_buffer_new = (char*)calloc(filesize, sizeof(char));
+
+				receive_file(file_buffer_new, client_socket);
+
+				if(file_buffer_new != NULL)
+				{std::cout << "First 16 bytes of file_buffer_new: \n";
+    			print_16bytes(file_buffer_new);}
+					
+				
+				
 
 				std::cout << "Attempting to save file " << filename << std::endl;
-				save_file(save_path+"/"+filename, filesize, file_buffer);
+				save_file(save_path+"/"+filename, filesize, file_buffer_new);
 
 				//printf("File received: \n%s\n", file_buffer);
 				break;

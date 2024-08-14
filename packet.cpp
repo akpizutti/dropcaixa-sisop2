@@ -1,4 +1,5 @@
 #include "packet.hpp"
+#include "utils.hpp"
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -184,6 +185,8 @@ int send_file(char* file_path, int socket){
     send_packet(signal_packet,socket);
     free(signal_packet.payload);
 
+    
+
     //Packet packet_mtime = create_packet(PACKET_FILE_MTIME, 1, 1, 1, );
 
 
@@ -193,8 +196,17 @@ int send_file(char* file_path, int socket){
     // resetar ponteiro do arquivo ao início do arquivo
     fseek(file, 0L, SEEK_SET);
 
+    //enviar packet com tamanho do arquivo
+    char *filesize_buffer;
+    //long_to_bytes(numbytes,filesize_buffer);
+    filesize_buffer = long_to_bytes(numbytes);
+    Packet packet_filesize = create_packet(PACKET_FILE_LENGTH,0,1,sizeof(numbytes),filesize_buffer);
+    send_packet(packet_filesize,socket);
+    free(packet_filesize.payload);
+
     // não copiar mais bytes do que MAX_FILE_SIZE
-    bytes_to_read = std::min(numbytes, (long)MAX_FILE_SIZE);
+    //bytes_to_read = std::min(numbytes, (long)MAX_FILE_SIZE);
+    bytes_to_read = numbytes;
 
     // alocar memória para armazenar conteúdo do arquivo
     file_buffer = (char*)calloc(bytes_to_read, sizeof(char));
@@ -268,7 +280,6 @@ int receive_file(char* buffer, int socket){
     int message;
     char packet_buffer[SIZE_PACKET];
     int bytes_read = 0;
-    //int filesize = 0;
 
     //receber primeiro pacote
 
@@ -284,10 +295,10 @@ int receive_file(char* buffer, int socket){
     //filesize += packet.length;
     //printf("Should receive %d packets.\n", total_size);
     //printf("Received fragment number %d\n", packet.seqn);
-
-
+    
     memcpy(buffer+bytes_read, packet.payload, packet.length);
     bytes_read += packet.length;
+    
 
 
     //recebe o resto dos pacotes
@@ -304,6 +315,8 @@ int receive_file(char* buffer, int socket){
         bytes_read += packet.length;
     }
 
-    printf("Finished receiving file.");
+    
+
+    printf("Finished receiving file.\n");
     return bytes_read;
 }

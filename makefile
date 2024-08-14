@@ -10,8 +10,8 @@ monitor:
 server: packet users utils
 	g++ -o server server.cpp packet.o users.o utils.o -lm
 
-packet: 
-	g++ -c -o packet.o packet.cpp -lm
+packet: utils
+	g++ -c -o packet.o packet.cpp utils.o -lm
 
 users: 
 	g++ -c -o users.o users.cpp -lm
@@ -19,8 +19,8 @@ users:
 utils:
 	g++ -c -o utils.o utils.cpp -lm
 
-test: users
-	g++ -o test test.cpp users.o -lm
+test: users utils
+	g++ -o test test.cpp users.o utils.o -lm
 
 clean:
 	rm client monitor server test *.o

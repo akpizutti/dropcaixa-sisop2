@@ -94,6 +94,7 @@ void handle_user_commands(char command, int sockfd, std::string username)
         // ...
 
         break;
+        
     case 'c':
         // sincronizar
         namespace fs
