@@ -15,6 +15,7 @@
 #include <sys/inotify.h>
 
 #include "../Common/packet.hpp"
+#include "../Common/utils.hpp"
 
 #define PORT 4000
 #define EVENT_SIZE (sizeof(struct inotify_event))
@@ -121,23 +122,14 @@ void handle_user_commands(char command, int sockfd, std::string username)
         break;
 
     case 'g':
-        struct stat sb;
+        
 
         //manda sinal pro servidor criar sync_dir
-        packet_sync_signal = create_packet(PACKET_GET_SYNC_DIR, 0, 0, 0, NULL);
-        send_packet(packet_sync_signal, sockfd);
+        //packet_sync_signal = create_packet(PACKET_GET_SYNC_DIR, 0, 0, 0, NULL);
+        //send_packet(packet_sync_signal, sockfd);
 
-        if (stat(sync_dir_user.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode))
-        {
-            printf("Directory exists\n");
-        }
-        else
-        {
-            printf("Creating sync_dir...\n");
-            mkdir(sync_dir_user.c_str(), 0700);
-            
-            printf("sync_dir created!\n");
-        }
+        create_sync_dir(username);
+
         // inicia sincronização
         break;
 
@@ -189,6 +181,8 @@ int main(int argc, char *argv[])
     }
 
     std::string username = argv[1];
+
+    create_sync_dir(username);
 
     server = gethostbyname(argv[2]);
     if (server == NULL)

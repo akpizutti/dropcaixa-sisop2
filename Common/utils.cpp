@@ -1,5 +1,7 @@
 #include "utils.hpp"
 #include <iostream>
+#include <unistd.h>
+#include <sys/stat.h>
 
 int save_file(std::string path, int filesize, char *buffer)
 {
@@ -71,4 +73,23 @@ void print_16bytes(char* buffer){
     // printf("%hhu\n",buffer[2]);
     // printf("%hhu\n",buffer[3]);
     return;
+}
+
+
+void create_sync_dir(std::string username){
+    std::string sync_dir = "./sync_dir_";
+    std::string sync_dir_user;
+    sync_dir_user = sync_dir + username;
+    struct stat sb;
+
+    if (stat(sync_dir_user.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode))
+				{
+					//printf("Directory exists\n");
+				} else{
+					//printf("Creating sync_dir...\n");
+					std::cout << "Creating sync_dir for " << username << std::endl;
+					mkdir(sync_dir_user.c_str(), 0700);
+					
+					printf("sync_dir created!\n");
+				}
 }

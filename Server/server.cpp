@@ -48,6 +48,8 @@ void *handle_client(void *arg)
     std::string sync_dir_user;
     sync_dir_user = sync_dir + username;
 
+	create_sync_dir(username);
+
 	//std::cout << "Username recebido na handle_client: " << username << std::endl;
 
 	char buffer[1024] = {0};
@@ -62,7 +64,7 @@ void *handle_client(void *arg)
 		int message;
 		int filesize = 0;
 		std::string filename;
-		std::string save_path = "./sync_dir";
+		//std::string save_path = "./sync_dir";
 		struct stat sb;
 
 		/* read from the socket */
@@ -109,17 +111,8 @@ void *handle_client(void *arg)
 
 			case PACKET_GET_SYNC_DIR:
 			
-
-				if (stat(sync_dir_user.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode))
-				{
-					//printf("Directory exists\n");
-				} else{
-					//printf("Creating sync_dir...\n");
-					std::cout << "Creating sync_dir for " << username << std::endl;
-					mkdir(sync_dir_user.c_str(), 0700);
-					
-					printf("sync_dir created!\n");
-				}
+				create_sync_dir(username);
+				
 				
 			break;
 			default:
