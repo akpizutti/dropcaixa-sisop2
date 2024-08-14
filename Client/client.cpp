@@ -11,9 +11,10 @@
 #include <iostream>
 #include <string>
 #include <unistd.h>
-#include "packet.hpp"
 #include <filesystem>
 #include <sys/inotify.h>
+
+#include "../Common/packet.hpp"
 
 #define PORT 4000
 #define EVENT_SIZE (sizeof(struct inotify_event))

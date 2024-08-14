@@ -1,26 +1,32 @@
-all: client server monitor users
+COMPILER = g++
+
+
+
+all: client server users
 
 
 client: packet users utils
-	g++ -o client client.cpp packet.o users.o utils.o -lm
-
-monitor:
-	g++ -o monitor monitor.cpp -lm
+	$(COMPILER) -o Client/client Client/client.cpp Common/packet.o Common/users.o Common/utils.o -lm
 
 server: packet users utils
-	g++ -o server server.cpp packet.o users.o utils.o -lm
+	$(COMPILER) -o Server/server Server/server.cpp Common/packet.o Common/users.o Common/utils.o -lm
 
 packet: utils
-	g++ -c -o packet.o packet.cpp utils.o -lm
+	$(COMPILER) -c -o Common/packet.o Common/packet.cpp Common/utils.o -lm
 
 users: 
-	g++ -c -o users.o users.cpp -lm
+	$(COMPILER) -c -o Common/users.o Common/users.cpp -lm
 
 utils:
-	g++ -c -o utils.o utils.cpp -lm
+	$(COMPILER) -c -o Common/utils.o Common/utils.cpp -lm
+
+monitor:
+	$(COMPILER) -o Misc/monitor Misc/monitor.cpp -lm
 
 test: users utils
-	g++ -o test test.cpp users.o utils.o -lm
+	$(COMPILER) -o Misc/test Misc/test.cpp Common/users.o Common/utils.o -lm
 
 clean:
-	rm client monitor server test *.o
+	rm -f Common/*.o Client/*.o Server/*.o Misc/*.o
+	rm -f Client/client Monitor/monitor Server/server Misc/test 
+	

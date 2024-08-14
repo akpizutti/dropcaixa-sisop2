@@ -1,6 +1,6 @@
-#include "users.hpp"
-#include "packet.hpp"
-#include "utils.hpp"
+#include "../Common/users.hpp"
+#include "../Common/packet.hpp"
+#include "../Common/utils.hpp"
 
 #include <stdio.h>
 #include <stdlib.h>
