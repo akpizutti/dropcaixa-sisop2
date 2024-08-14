@@ -30,7 +30,10 @@ void *handle_inotify(void *arg)
     inotifyfd = inotify_init();
 
     char* username = (char*)arg;
-    std::cout << "Username recebido na handle_inotify: " << username << std::endl;
+    //std::cout << "Username recebido na handle_inotify: " << username << std::endl;
+    std::string sync_dir = "./sync_dir_";
+    std::string user_sync_dir = sync_dir + username;
+
 
     if (inotifyfd < 0)
     {
@@ -40,7 +43,7 @@ void *handle_inotify(void *arg)
     while (is_watching == true)
     {
 
-        inotifywd = inotify_add_watch(inotifyfd, "./sync_dir",
+        inotifywd = inotify_add_watch(inotifyfd, user_sync_dir.c_str(),
                                       IN_CLOSE_WRITE | IN_CREATE | IN_DELETE);
         length = read(inotifyfd, buffer, BUF_LEN);
 
@@ -60,6 +63,7 @@ void *handle_inotify(void *arg)
                 if (event->mask & IN_CREATE)
                 {
                     printf("The file %s was created.\n", event->name);
+                    //send_file()
                 }
                 else if (event->mask & IN_DELETE)
                 {
