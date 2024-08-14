@@ -93,6 +93,8 @@ void handle_user_commands(char command, int sockfd, std::string username)
     std::string sync_dir_user;
     sync_dir_user = sync_dir + username;
 
+    Packet packet_sync_signal;
+
     // Handle different commands
     switch (command)
     {
@@ -121,6 +123,10 @@ void handle_user_commands(char command, int sockfd, std::string username)
     case 'g':
         struct stat sb;
 
+        //manda sinal pro servidor criar sync_dir
+        packet_sync_signal = create_packet(PACKET_GET_SYNC_DIR, 0, 0, 0, NULL);
+        send_packet(packet_sync_signal, sockfd);
+
         if (stat(sync_dir_user.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode))
         {
             printf("Directory exists\n");
@@ -129,6 +135,7 @@ void handle_user_commands(char command, int sockfd, std::string username)
         {
             printf("Creating sync_dir...\n");
             mkdir(sync_dir_user.c_str(), 0700);
+            
             printf("sync_dir created!\n");
         }
         // inicia sincronização

@@ -11,9 +11,8 @@
 #define PACKET_FILE_MTIME 3  // timestamp de modificação do arquivo
 #define PACKET_FILE_CTIME 4  // timestamp de criação do arquivo
 #define PACKET_FILE_LENGTH 5 // comprimento em bytes do arquivo a ser enviado
-
-
 #define PACKET_USER_ID 6
+#define PACKET_GET_SYNC_DIR 7
 
 #define MAX_PAYLOAD_SIZE 256
 #define SIZE_PACKET 3 * sizeof(uint16_t) + sizeof(uint32_t) + MAX_PAYLOAD_SIZE * sizeof(char)

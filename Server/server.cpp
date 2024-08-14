@@ -44,6 +44,9 @@ void *handle_client(void *arg)
 	int client_socket = args.socket;
 
 	std::string username = args.username;
+	std::string sync_dir = "./sync_dir_";
+    std::string sync_dir_user;
+    sync_dir_user = sync_dir + username;
 
 	//std::cout << "Username recebido na handle_client: " << username << std::endl;
 
@@ -60,6 +63,8 @@ void *handle_client(void *arg)
 		int filesize = 0;
 		std::string filename;
 		std::string save_path = "./sync_dir";
+		struct stat sb;
+
 		/* read from the socket */
 		message = read(client_socket, buffer, sizeof(buffer));
 		if (message == 0)
@@ -96,16 +101,27 @@ void *handle_client(void *arg)
 
 				receive_file(file_buffer_new, client_socket);
 
-				
-					
-				
-				
-
 				std::cout << "Saving file " << filename << std::endl;
 				save_file(save_path+"/"+filename, filesize, file_buffer_new);
 
 				//printf("File received: \n%s\n", file_buffer);
 				break;
+
+			case PACKET_GET_SYNC_DIR:
+			
+
+				if (stat(sync_dir_user.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode))
+				{
+					//printf("Directory exists\n");
+				} else{
+					//printf("Creating sync_dir...\n");
+					std::cout << "Creating sync_dir for " << username << std::endl;
+					mkdir(sync_dir_user.c_str(), 0700);
+					
+					printf("sync_dir created!\n");
+				}
+				
+			break;
 			default:
 				printf("Received invalid packet type.\n");
 			}
