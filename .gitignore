@@ -5,3 +5,8 @@ monitor
 /sync_dir*/
 *.txt
 workspace.code-workspace
+*.zip
+*.jpg
+*.mp4
+*.pdf
+
