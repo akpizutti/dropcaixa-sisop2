@@ -29,6 +29,9 @@ void *handle_inotify(void *arg)
 
     inotifyfd = inotify_init();
 
+    char* username = (char*)arg;
+    std::cout << "Username recebido na handle_inotify: " << username << std::endl;
+
     if (inotifyfd < 0)
     {
         perror("inotify_init");
@@ -199,7 +202,7 @@ int main(int argc, char *argv[])
 
     // Thread para inotify
     pthread_t inotify_thread;
-    if (pthread_create(&inotify_thread, NULL, handle_inotify, NULL) != 0)
+    if (pthread_create(&inotify_thread, NULL, handle_inotify, argv[1]) != 0)
     {
         perror("pthread_create error");
         exit(1);
