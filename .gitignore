@@ -9,4 +9,4 @@ workspace.code-workspace
 *.jpg
 *.mp4
 *.pdf
-
+*Zone.Identifier
