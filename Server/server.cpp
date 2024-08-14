@@ -102,7 +102,7 @@ void *handle_client(void *arg)
 				receive_file(file_buffer_new, client_socket);
 
 				std::cout << "Saving file " << filename << std::endl;
-				save_file(save_path+"/"+filename, filesize, file_buffer_new);
+				save_file(sync_dir_user+"/"+filename, filesize, file_buffer_new);
 
 				//printf("File received: \n%s\n", file_buffer);
 				break;
