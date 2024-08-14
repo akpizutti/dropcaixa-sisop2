@@ -132,7 +132,7 @@ void handle_user_commands(char command, int sockfd, std::string username)
         std::cout << "Enter the path of file to send: ";
 
         std::cin >> file_path;
-        std::cout << "\npath: " << file_path;
+        //std::cout << "\npath: " << file_path;
 
         send_file(file_path.data(), sockfd);
         // quandro server processar e mandar sinal de volta, sincronizar

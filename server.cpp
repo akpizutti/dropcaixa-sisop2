@@ -45,7 +45,7 @@ void *handle_client(void *arg)
 
 	std::string username = args.username;
 
-	std::cout << "Username recebido na handle_client: " << username << std::endl;
+	//std::cout << "Username recebido na handle_client: " << username << std::endl;
 
 	char buffer[1024] = {0};
 	char file_buffer[MAX_FILE_SIZE];
@@ -77,7 +77,7 @@ void *handle_client(void *arg)
 		/* write in the socket */
 		else
 		{
-			printf("Here is the message: %s\n", buffer);
+			//printf("Here is the message: %s\n", buffer);
 			Packet packet = deserialize_packet(buffer);
 			// printf("Received packet:\n");
 			// print_packet(packet);
@@ -96,14 +96,12 @@ void *handle_client(void *arg)
 
 				receive_file(file_buffer_new, client_socket);
 
-				if(file_buffer_new != NULL)
-				{std::cout << "First 16 bytes of file_buffer_new: \n";
-    			print_16bytes(file_buffer_new);}
+				
 					
 				
 				
 
-				std::cout << "Attempting to save file " << filename << std::endl;
+				std::cout << "Saving file " << filename << std::endl;
 				save_file(save_path+"/"+filename, filesize, file_buffer_new);
 
 				//printf("File received: \n%s\n", file_buffer);

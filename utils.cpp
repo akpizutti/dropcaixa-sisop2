@@ -6,12 +6,10 @@ int save_file(std::string path, int filesize, char *buffer)
     FILE *file = fopen(path.c_str(), "wb");
     if (file == NULL)
     {
-        std::cout << "nao abriu o arquivo" << std::endl;
+        std::cout << "Erro ao abrir arquivo" << std::endl;
         std::cout << "path: " << path << std::endl;
         return -1;
     }
-
-    std::cout << "\nhello\n";
 
     //printf("File received: \n%s\n", buffer);
     fwrite(buffer, 1, filesize, file);
@@ -53,7 +51,7 @@ char* long_to_bytes(long number){
 
 
 long bytes_to_long(char* bytes){
-    std::cout << "\nin bytes_to_long(): \n"; //<< (unsigned short)buffer[0] << " " << (unsigned short)buffer[2] << " "<< (unsigned short)buffer[3] << " "<< (unsigned short)buffer[4] << std::endl;
+    // std::cout << "\nin bytes_to_long(): \n"; //<< (unsigned short)buffer[0] << " " << (unsigned short)buffer[2] << " "<< (unsigned short)buffer[3] << " "<< (unsigned short)buffer[4] << std::endl;
     // printf("%hhu\n",bytes[0]);
     // printf("%hhu\n",bytes[1]);
     // printf("%hhu\n",bytes[2]);
