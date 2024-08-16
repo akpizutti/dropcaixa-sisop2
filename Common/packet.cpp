@@ -312,7 +312,9 @@ int send_file(std::string file_path, int socket){
         stat(file_path.c_str(),&attrib);
         time_t modify_time = attrib.st_mtim.tv_sec;
         time_t create_time = attrib.st_ctim.tv_sec;
+        
         numbytes = attrib.st_size;
+
 
 
         // enviar packet de signal para recipiente
