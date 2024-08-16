@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
+using namespace std;
+
 int save_file(std::string path, int filesize, char *buffer)
 {
     FILE *file = fopen(path.c_str(), "wb");
@@ -92,4 +94,12 @@ void create_sync_dir(std::string username){
 					
 					printf("sync_dir created!\n");
 				}
+}
+
+string get_sync_dir_relative_path(string username){
+    std::string sync_dir = "./sync_dir_";
+    std::string sync_dir_user;
+    sync_dir_user = sync_dir + username;
+
+    return sync_dir_user;
 }
