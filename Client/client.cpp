@@ -49,7 +49,7 @@ void *handle_inotify(void *arg)
     std::string user_sync_dir = sync_dir + username;
 
     inotifyfd = inotify_init();
-    inotifywd = inotify_add_watch(inotifyfd, user_sync_dir.c_str(), IN_CLOSE_WRITE | IN_CREATE | IN_DELETE);
+    inotifywd = inotify_add_watch(inotifyfd, user_sync_dir.c_str(), IN_CLOSE_WRITE | IN_CREATE | IN_DELETE | IN_MOVED_TO);
 
 
     if (inotifyfd < 0)
@@ -87,6 +87,7 @@ void *handle_inotify(void *arg)
                 else if (event->mask & IN_DELETE)
                 {
                     printf("The file %s was deleted.\n", event->name);
+                    // TODO: pedir pro servidor deletar arquivo aqui <-----------
                 }
 
             }
