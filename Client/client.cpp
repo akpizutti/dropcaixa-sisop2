@@ -12,6 +12,9 @@
 #include <string>
 #include <unistd.h>
 #include <filesystem>
+#include <vector>
+#include <mutex>
+#include <algorithm>
 #include <sys/inotify.h>
 
 #include "../Common/packet.hpp"
@@ -23,11 +26,16 @@
 
 using namespace std;
 
+namespace fs = std::filesystem;
+
 struct thread_args
 {
-	int socket;
-	std::string username;
+    int socket;
+    std::string username;
 };
+
+vector<string> send_queue;
+mutex mutex_send_file;
 
 void *handle_inotify(void *arg)
 {
@@ -37,20 +45,17 @@ void *handle_inotify(void *arg)
     char buffer[BUF_LEN];
     bool is_watching = true;
 
-
-
     struct thread_args args = *((struct thread_args *)arg);
 
     int socket = args.socket;
 
     std::string username = args.username;
-    //std::cout << "Username recebido na handle_inotify: " << username << std::endl;
+    // std::cout << "Username recebido na handle_inotify: " << username << std::endl;
     std::string sync_dir = "./sync_dir_";
     std::string user_sync_dir = sync_dir + username;
 
     inotifyfd = inotify_init();
     inotifywd = inotify_add_watch(inotifyfd, user_sync_dir.c_str(), IN_CLOSE_WRITE | IN_CREATE | IN_DELETE | IN_MOVED_TO);
-
 
     if (inotifyfd < 0)
     {
@@ -60,7 +65,6 @@ void *handle_inotify(void *arg)
     while (is_watching == true)
     {
 
-        
         length = read(inotifyfd, buffer, BUF_LEN);
 
         if (length < 0)
@@ -78,18 +82,28 @@ void *handle_inotify(void *arg)
             {
                 if (event->mask & IN_CREATE || event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO)
                 {
-                    //printf("The file %s was created.\n", event->name);
+                    // printf("The file %s was created.\n", event->name);
                     std::string filename = event->name;
                     cout << "\nsync thread will try to send " << filename << endl;
-                    sleep(1); //it just works™
-                    send_file(user_sync_dir+"/"+filename,socket);
+
+                    sleep(1); // it just works™
+
+                    mutex_send_file.lock();
+                    // auto itr = find(send_queue.begin(), send_queue.end(), filename) ;
+                    // if (itr == send_queue.end()){
+                    //     send_queue.push_back(filename);
+                    //     send_file(user_sync_dir + "/" + filename, socket);
+                    //     send_queue.erase(itr);
+                    // } 
+                    send_file(user_sync_dir + "/" + filename, socket);
+                    mutex_send_file.unlock();
+                        
                 }
                 else if (event->mask & IN_DELETE)
                 {
                     printf("The file %s was deleted.\n", event->name);
                     // TODO: pedir pro servidor deletar arquivo aqui <-----------
                 }
-
             }
             i += EVENT_SIZE + event->len;
         }
@@ -120,12 +134,9 @@ void handle_user_commands(char command, int sockfd, std::string username)
         // ...
 
         break;
-        
+
     case 'c':
         // sincronizar
-        namespace fs
-        = std::filesystem;
-        
 
         for (const auto &entry : fs::directory_iterator(sync_dir_user))
         {
@@ -137,11 +148,10 @@ void handle_user_commands(char command, int sockfd, std::string username)
         break;
 
     case 'g':
-        
 
-        //manda sinal pro servidor criar sync_dir
-        //packet_sync_signal = create_packet(PACKET_GET_SYNC_DIR, 0, 0, 0, NULL);
-        //send_packet(packet_sync_signal, sockfd);
+        // manda sinal pro servidor criar sync_dir
+        // packet_sync_signal = create_packet(PACKET_GET_SYNC_DIR, 0, 0, 0, NULL);
+        // send_packet(packet_sync_signal, sockfd);
 
         create_sync_dir(username);
 
@@ -154,10 +164,15 @@ void handle_user_commands(char command, int sockfd, std::string username)
         std::cout << "Enter the path of file to send: ";
 
         std::cin >> file_path;
-        //std::cout << "\npath: " << file_path;
+        // std::cout << "\npath: " << file_path;
 
-        //send_file(file_path.data(), sockfd);
+        // save_file()
+        fs::copy(file_path, sync_dir_user);
+
+        // send_file(file_path.data(), sockfd);
+        mutex_send_file.lock();
         send_file(file_path, sockfd);
+        mutex_send_file.unlock();
         // quandro server processar e mandar sinal de volta, sincronizar
         break;
 
