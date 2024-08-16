@@ -309,7 +309,10 @@ int send_file(std::string file_path, int socket){
         filename = basename(file_path.data());
 
         // obter horario de modificação e criação do arquivo
-        stat(file_path.c_str(),&attrib);
+        if(stat(file_path.c_str(),&attrib) == -1)
+        {
+            cout << "Stat error : " << strerror(errno) << endl;
+        }
         time_t modify_time = attrib.st_mtim.tv_sec;
         time_t create_time = attrib.st_ctim.tv_sec;
         

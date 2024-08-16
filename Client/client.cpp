@@ -81,6 +81,7 @@ void *handle_inotify(void *arg)
                     printf("The file %s was created.\n", event->name);
                     std::string filename = event->name;
                     cout << username << "\ninotify thread will try to send " << filename << endl;
+                    sleep(1); //it just works
                     send_file(user_sync_dir+"/"+filename,socket);
                 }
                 else if (event->mask & IN_DELETE)
