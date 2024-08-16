@@ -76,22 +76,19 @@ void *handle_inotify(void *arg)
                 (struct inotify_event *)&buffer[i];
             if (event->len)
             {
-                if (event->mask & IN_CREATE)
+                if (event->mask & IN_CREATE || event->mask & IN_CLOSE_WRITE || event->mask & IN_MOVED_TO)
                 {
-                    printf("The file %s was created.\n", event->name);
+                    //printf("The file %s was created.\n", event->name);
                     std::string filename = event->name;
-                    cout << username << "\ninotify thread will try to send " << filename << endl;
-                    sleep(1); //it just works
+                    cout << "\nsync thread will try to send " << filename << endl;
+                    sleep(1); //it just works™
                     send_file(user_sync_dir+"/"+filename,socket);
                 }
                 else if (event->mask & IN_DELETE)
                 {
                     printf("The file %s was deleted.\n", event->name);
                 }
-                else if (event->mask & IN_CLOSE_WRITE)
-                {
-                    printf("The file %s was modified.\n", event->name);
-                }
+
             }
             i += EVENT_SIZE + event->len;
         }
