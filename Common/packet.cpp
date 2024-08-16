@@ -10,6 +10,9 @@
 #include <libgen.h>
 #include <iostream>
 #include <sys/stat.h>
+#include <fstream>
+
+using namespace std;
 
 void print_packet(Packet packet){
     printf("Type: %d\n", packet.type);
@@ -143,7 +146,7 @@ Packet receive_packet(int socket){
     if (n == 0)
     {
         printf("Client disconnected.\n");
-        return create_packet(-1,-1,-1,-1,NULL);
+        return create_packet(0,-1,-1,-1,NULL);
     }
     else if (n == -1)
     {
@@ -164,12 +167,15 @@ int send_file(char* file_path, int socket){
     struct stat attrib;
 
     FILE * file;
+    
 
     int n;
 
     // abrir arquivo
     file = fopen(file_path, "r+");
     if (file == NULL) {printf("File error.\n"); return -1;}
+    
+
 
     // obter nome do arquivo
     filename = basename(file_path);
@@ -196,6 +202,7 @@ int send_file(char* file_path, int socket){
     // resetar ponteiro do arquivo ao início do arquivo
     fseek(file, 0L, SEEK_SET);
 
+
     //enviar packet com tamanho do arquivo
     char *filesize_buffer;
     //long_to_bytes(numbytes,filesize_buffer);
@@ -211,10 +218,10 @@ int send_file(char* file_path, int socket){
     // alocar memória para armazenar conteúdo do arquivo
     file_buffer = (char*)calloc(bytes_to_read, sizeof(char));
     if(file_buffer == NULL) {printf("Memory error.\n"); return -1;}
+    
 
     // copia conteúdo do arquivo para a memória
     fread(file_buffer, sizeof(char), bytes_to_read, file);
-    //fgets(file_buffer,MAX_FILE_SIZE, file); //só copia até encontrar um endline
 
     
     int packets_to_send = ceil((double)bytes_to_read / (double)MAX_PAYLOAD_SIZE);
@@ -275,6 +282,116 @@ int send_file(char* file_path, int socket){
     return 0;
 }
 
+int send_file(std::string file_path, int socket){
+    char packet_buffer[SIZE_PACKET];
+    char* file_buffer;
+    char* filename;
+    long int numbytes = 0;
+    int bytes_to_read;
+    struct stat attrib;
+
+    //FILE * file;
+    ifstream file(file_path, ios::in|ios::binary|ios::ate);
+
+    int n;
+
+    std::cout << "Will send file from path: " << file_path << std::endl;
+
+    // abrir arquivo
+    //file = fopen(file_path.c_str(), "rb");
+    //if (file == NULL) {printf("File error.\n"); return -1;}
+    //cout << "fopen returned " << file << endl;
+    //printf("fopen returned %ld \n", file);
+    //file.open(file_path);
+
+    if(file.is_open())
+    {// obter nome do arquivo
+        filename = basename(file_path.data());
+
+        // obter horario de modificação e criação do arquivo
+        stat(file_path.c_str(),&attrib);
+        time_t modify_time = attrib.st_mtim.tv_sec;
+        time_t create_time = attrib.st_ctim.tv_sec;
+        numbytes = attrib.st_size;
+
+
+        // enviar packet de signal para recipiente
+        Packet signal_packet = create_packet(PACKET_FILE_SIGNAL, 0, 1, strlen(filename), filename);
+        send_packet(signal_packet,socket);
+        free(signal_packet.payload);
+
+        
+        //Packet packet_mtime = create_packet(PACKET_FILE_MTIME, 1, 1, 1, );
+
+
+        // obter comprimento do arquivo
+        //fseek(file, 0L, SEEK_END);
+        //numbytes = ftell(file);
+        // resetar ponteiro do arquivo ao início do arquivo
+        //fseek(file, 0L, SEEK_SET);
+
+        //numbytes = file.tellg();
+        
+        cout << "Outgoing file has " << numbytes << " bytes.\n";
+
+        //enviar packet com tamanho do arquivo
+        char *filesize_buffer;
+        filesize_buffer = long_to_bytes(numbytes);
+        Packet packet_filesize = create_packet(PACKET_FILE_LENGTH,0,1,sizeof(numbytes),filesize_buffer);
+        send_packet(packet_filesize,socket);
+        free(packet_filesize.payload);
+
+        bytes_to_read = numbytes;
+
+        // alocar memória para armazenar conteúdo do arquivo
+        // file_buffer = (char*)calloc(bytes_to_read, sizeof(char));
+        // if(file_buffer == NULL) {printf("Memory error.\n"); return -1;}
+        file_buffer = new char[numbytes];
+
+        // copia conteúdo do arquivo para a memória
+        //fread(file_buffer, sizeof(char), bytes_to_read, file);
+        file.seekg(0,ios::beg);
+        file.read (file_buffer, numbytes);
+
+        
+        int packets_to_send = ceil((double)bytes_to_read / (double)MAX_PAYLOAD_SIZE);
+        int seq = 0;
+        int total_size = packets_to_send;
+
+        // manda fragmentos do arquivo se for maior que MAX_PAYLOAD_SIZE
+        while(bytes_to_read > MAX_PAYLOAD_SIZE){
+            Packet packet = create_packet(PACKET_FILE_DATA,seq,total_size,MAX_PAYLOAD_SIZE,file_buffer+seq*MAX_PAYLOAD_SIZE);
+
+            send_packet(packet,socket);
+
+            seq++;
+            bytes_to_read -= MAX_PAYLOAD_SIZE;
+            // evitar um memory leak
+            free(packet.payload);
+        }
+        // manda último fragmento se houver
+        if(bytes_to_read > 0){
+            Packet packet = create_packet(PACKET_FILE_DATA,seq,total_size,bytes_to_read,file_buffer+seq*MAX_PAYLOAD_SIZE);
+
+            send_packet(packet,socket);
+
+            // evitar um memory leak
+            free(packet.payload);
+        }
+
+        //fclose(file);
+        file.close();
+        delete[] file_buffer;
+    } else{
+         cout << "File error. " << endl;
+         send_error(socket);
+    }
+       
+    
+    
+    return 0;
+}
+
 
 int receive_file(char* buffer, int socket){
     int message;
@@ -288,6 +405,7 @@ int receive_file(char* buffer, int socket){
 
     if(packet.type != PACKET_FILE_DATA){
         printf("Wrong packet type received in receive_file.\n");
+        std::cout << "Received " << packet.type << ", expected " << PACKET_FILE_DATA << std::endl;
         return -1;
     }
 
@@ -319,4 +437,11 @@ int receive_file(char* buffer, int socket){
 
     printf("Finished receiving file.\n");
     return bytes_read;
+}
+
+
+void send_error(int socket){
+    Packet packet = create_packet(PACKET_ERROR,0,0,0,NULL);
+    send_packet(packet,socket);
+    return;
 }

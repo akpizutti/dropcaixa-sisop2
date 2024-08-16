@@ -21,6 +21,14 @@
 #define EVENT_SIZE (sizeof(struct inotify_event))
 #define BUF_LEN (1024 * (EVENT_SIZE + 16))
 
+using namespace std;
+
+struct thread_args
+{
+	int socket;
+	std::string username;
+};
+
 void *handle_inotify(void *arg)
 {
     int length, i = 0;
@@ -29,12 +37,19 @@ void *handle_inotify(void *arg)
     char buffer[BUF_LEN];
     bool is_watching = true;
 
-    inotifyfd = inotify_init();
 
-    char* username = (char*)arg;
+
+    struct thread_args args = *((struct thread_args *)arg);
+
+    int socket = args.socket;
+
+    std::string username = args.username;
     //std::cout << "Username recebido na handle_inotify: " << username << std::endl;
     std::string sync_dir = "./sync_dir_";
     std::string user_sync_dir = sync_dir + username;
+
+    inotifyfd = inotify_init();
+    inotifywd = inotify_add_watch(inotifyfd, user_sync_dir.c_str(), IN_CLOSE_WRITE | IN_CREATE | IN_DELETE);
 
 
     if (inotifyfd < 0)
@@ -45,8 +60,7 @@ void *handle_inotify(void *arg)
     while (is_watching == true)
     {
 
-        inotifywd = inotify_add_watch(inotifyfd, user_sync_dir.c_str(),
-                                      IN_CLOSE_WRITE | IN_CREATE | IN_DELETE);
+        
         length = read(inotifyfd, buffer, BUF_LEN);
 
         if (length < 0)
@@ -65,7 +79,9 @@ void *handle_inotify(void *arg)
                 if (event->mask & IN_CREATE)
                 {
                     printf("The file %s was created.\n", event->name);
-                    //send_file()
+                    std::string filename = event->name;
+                    cout << username << "\ninotify thread will try to send " << filename << endl;
+                    send_file(user_sync_dir+"/"+filename,socket);
                 }
                 else if (event->mask & IN_DELETE)
                 {
@@ -141,7 +157,8 @@ void handle_user_commands(char command, int sockfd, std::string username)
         std::cin >> file_path;
         //std::cout << "\npath: " << file_path;
 
-        send_file(file_path.data(), sockfd);
+        //send_file(file_path.data(), sockfd);
+        send_file(file_path, sockfd);
         // quandro server processar e mandar sinal de volta, sincronizar
         break;
 
@@ -207,8 +224,9 @@ int main(int argc, char *argv[])
     send_packet(id, sockfd);
 
     // Thread para inotify
+    struct thread_args args = {sockfd, argv[1]};
     pthread_t inotify_thread;
-    if (pthread_create(&inotify_thread, NULL, handle_inotify, argv[1]) != 0)
+    if (pthread_create(&inotify_thread, NULL, handle_inotify, &args) != 0)
     {
         perror("pthread_create error");
         exit(1);

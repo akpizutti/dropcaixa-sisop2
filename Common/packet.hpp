@@ -14,6 +14,10 @@
 #define PACKET_USER_ID 6
 #define PACKET_GET_SYNC_DIR 7
 
+
+
+#define PACKET_ERROR 255
+
 #define MAX_PAYLOAD_SIZE 256
 #define SIZE_PACKET 3 * sizeof(uint16_t) + sizeof(uint32_t) + MAX_PAYLOAD_SIZE * sizeof(char)
 #define MAX_FILE_SIZE 1048576
@@ -48,11 +52,14 @@ Packet receive_packet(int socket);
 
 // envia um arquivo para o socket especificado
 int send_file(char *filePath, int socket);
+int send_file(std::string filePath, int socket);
 
 // recebe um arquivo e coloca seu conteúdo em buffer
 int receive_file(char *buffer, int socket);
 
 // cliente pede um arquivo e o servidor manda
 int download_file(char* buffer, int socket, std::string filename);
+
+void send_error(int socket);
 
 #endif

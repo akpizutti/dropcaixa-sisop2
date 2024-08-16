@@ -28,7 +28,9 @@
 #define PORT 4000
 #define MAX_CLIENTS 5
 
-std::vector<User *> connected_users;
+using namespace std;
+
+vector<User *> connected_users;
 
 struct thread_args
 {
@@ -43,6 +45,8 @@ void *handle_client(void *arg)
 	// int client_socket = *((int *)arg);
 	int client_socket = args.socket;
 
+	Packet packet;
+
 	std::string username = args.username;
 	std::string sync_dir = "./sync_dir_";
     std::string sync_dir_user;
@@ -52,7 +56,7 @@ void *handle_client(void *arg)
 
 	//std::cout << "Username recebido na handle_client: " << username << std::endl;
 
-	char buffer[1024] = {0};
+	char buffer[SIZE_PACKET] = {0};
 	char file_buffer[MAX_FILE_SIZE];
 	char *file_buffer_new;
 
@@ -68,15 +72,16 @@ void *handle_client(void *arg)
 		struct stat sb;
 
 		/* read from the socket */
-		message = read(client_socket, buffer, sizeof(buffer));
-		if (message == 0)
+		//message = read(client_socket, buffer, sizeof(buffer));
+		packet = receive_packet(client_socket);
+		if (packet.type==0)
 		{
 			//connected_users.erase(std::remove(connected_users.begin(), connected_users.end(), username), connected_users.end());
 			//tirar device connected
 			printf("Client disconnected.\n");
 			break;
 		}
-		else if (message == -1)
+		else if (packet.type == -1)
 		{
 			perror("ERROR reading from socket");
 			break;
@@ -85,7 +90,7 @@ void *handle_client(void *arg)
 		else
 		{
 			//printf("Here is the message: %s\n", buffer);
-			Packet packet = deserialize_packet(buffer);
+			// Packet packet = deserialize_packet(buffer);
 			// printf("Received packet:\n");
 			// print_packet(packet);
 
@@ -97,14 +102,20 @@ void *handle_client(void *arg)
 				filename = packet.payload;
 				std::cout << "Will receive file " << filename << std::endl;
 				packet_filesize = receive_packet(client_socket);
+				if(packet_filesize.type != PACKET_FILE_LENGTH){
+					cout << "Wrong packet type received. Expected file length. Received " << packet_filesize.type << endl;
+				}
 				filesize = bytes_to_long(packet_filesize.payload);
+				std::cout << "File has " << filesize << " bytes" << std::endl;
 
 				file_buffer_new = (char*)calloc(filesize, sizeof(char));
 
-				receive_file(file_buffer_new, client_socket);
+				if(receive_file(file_buffer_new, client_socket) != -1){
+					std::cout << "Saving file " << filename << std::endl;
+					save_file(sync_dir_user+"/"+filename, filesize, file_buffer_new);
+				}
 
-				std::cout << "Saving file " << filename << std::endl;
-				save_file(sync_dir_user+"/"+filename, filesize, file_buffer_new);
+				
 
 				//printf("File received: \n%s\n", file_buffer);
 				break;
@@ -116,7 +127,7 @@ void *handle_client(void *arg)
 				
 			break;
 			default:
-				printf("Received invalid packet type.\n");
+				printf("Received invalid packet type: %d\n", packet.type);
 			}
 
 			message = write(client_socket, i_gotchu_message, strlen(i_gotchu_message));
