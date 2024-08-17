@@ -1,0 +1,32 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Debug Program",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${workspaceFolder}/Client/client",
+        "args": ["akim", "localhost"],
+        "stopAtEntry": false,
+        "cwd": "${workspaceFolder}",
+        "environment": [],
+        "externalConsole": true,
+        "MIMode": "gdb",
+        "setupCommands": [
+          {
+            "description": "Enable pretty-printing for gdb",
+            "text": "-enable-pretty-printing",
+            "ignoreFailures": true
+          }
+        ],
+        "preLaunchTask": "build-all",  // Tarefa de build que será executada antes do debug
+        "miDebuggerPath": "/usr/bin/gdb",
+        "logging": {
+          "trace": true,
+          "engineLogging": true,
+          "programOutput": true,
+          "exceptions": true
+        }
+      }
+    ]
+  }
