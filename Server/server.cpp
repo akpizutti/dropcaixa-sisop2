@@ -59,6 +59,7 @@ void *handle_client(void *arg)
 
 	char file_buffer[MAX_FILE_SIZE];
 	char *file_buffer_new;
+	vector<string> files_to_send;
 
 
 	// Read data from client
@@ -100,7 +101,7 @@ void *handle_client(void *arg)
 				if(packet_filesize.type != PACKET_FILE_LENGTH){
 					cout << "Wrong packet type received. Expected file length. Received " << packet_filesize.type << endl;
 				}
-				filesize = bytes_to_long(packet_filesize.payload);
+				filesize = bytes_to_int(packet_filesize.payload);
 
 				file_buffer_new = (char*)calloc(filesize, sizeof(char));
 
@@ -119,13 +120,21 @@ void *handle_client(void *arg)
 					if (entry.is_regular_file())
 					{
 						//std::cout << entry.path().filename().string() << std::endl;
+						files_to_send.push_back(entry.path().filename().string());
 						file_count++;
 					}
         		}
         
 				packet_file_count = create_packet(PACKET_FILE_COUNT,1,1,1,int_to_bytes(file_count));
 				send_packet(packet_file_count, client_socket);
-				
+
+				//for(int i=0; i<file_count; i++){}
+
+				for(string fn : files_to_send){
+					send_file(sync_dir_user+"/"+fn,client_socket);
+				}
+
+				files_to_send.clear();
 				
 				
 				

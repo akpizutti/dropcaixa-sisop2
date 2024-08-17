@@ -28,6 +28,8 @@ using namespace std;
 
 namespace fs = std::filesystem;
 
+bool is_watching = false;
+
 struct thread_args
 {
     int socket;
@@ -43,7 +45,7 @@ void *handle_inotify(void *arg)
     int inotifyfd;
     int inotifywd;
     char buffer[BUF_LEN];
-    bool is_watching = true;
+
 
     struct thread_args args = *((struct thread_args *)arg);
 
@@ -125,8 +127,33 @@ void get_all_files(string username, int socket){
     
     int filecount = bytes_to_int(packet_filecount.payload);
 
+    is_watching = false;
 
+    for(int i=0; i<filecount; i++){
+        Packet packet_signal = receive_packet(socket);
+        if(packet_signal.type != PACKET_FILE_SIGNAL){
+            cout << "Receivec wrong packet type in get_all_files: " << packet_signal.type << endl;
+            return;
+        }
 
+        string filename = packet_signal.payload;
+
+        
+
+        Packet packet_filesize = receive_packet(socket);
+
+        int filesize = bytes_to_int(packet_filesize.payload);
+
+        //char* file_buffer_new = (char*)calloc(filesize, sizeof(char));
+        char* file_buffer = new char[filesize];
+
+        
+        if(receive_file(file_buffer, socket) != -1){
+            save_file(sync_dir_user+"/"+filename, filesize, file_buffer);
+        }
+    }
+
+    is_watching = true;
 
     return;
 
@@ -252,6 +279,7 @@ int main(int argc, char *argv[])
     // Thread para inotify
     struct thread_args args = {sockfd, argv[1]};
     pthread_t inotify_thread;
+    is_watching = true;
     if (pthread_create(&inotify_thread, NULL, handle_inotify, &args) != 0)
     {
         perror("pthread_create error");
