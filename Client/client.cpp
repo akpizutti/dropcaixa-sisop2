@@ -121,6 +121,7 @@ void handle_user_commands(char command, int sockfd, std::string username)
     std::string file_path;
     std::string sync_dir = "./sync_dir_";
     std::string sync_dir_user;
+    std::string file_to_delete;
     sync_dir_user = sync_dir + username;
 
     Packet packet_sync_signal;
@@ -134,6 +135,23 @@ void handle_user_commands(char command, int sockfd, std::string username)
         // ...
 
         break;
+    
+    case 'd':
+        std::cout << "Enter the name of the file to delete: ";
+        std::cin >> file_path;  // Aqui, file_path é apenas o nome do arquivo
+
+        // Envia o comando para deletar o arquivo no servidor
+        packet_sync_signal = create_packet(PACKET_DELETE_FILE, 0, 0, file_path.size(), (char*)file_path.c_str());
+        send_packet(packet_sync_signal, sockfd);
+
+        // Deleta o arquivo localmente no cliente
+        file_to_delete = sync_dir_user + "/" + file_path;
+        if (remove(file_to_delete.c_str()) == 0) {
+            std::cout << "File " << file_path << " deleted successfully from client." << std::endl;
+        } else {
+            std::cerr << "Error deleting file " << file_path << " from client." << std::endl;
+        }
+    break;
 
     case 'c':
         // sincronizar

@@ -13,6 +13,7 @@
 #define PACKET_FILE_LENGTH 5 // comprimento em bytes do arquivo a ser enviado
 #define PACKET_USER_ID 6
 #define PACKET_GET_SYNC_DIR 7
+#define PACKET_DELETE_FILE 8
 
 
 
