@@ -11,6 +11,8 @@ long bytes_to_long(char* bytes);
 void print_16bytes(char* buffer);
 void create_sync_dir(std::string username);
 std::string get_sync_dir_relative_path(std::string username);
+int bytes_to_int(char* bytes);
+char* int_to_bytes(int number);
 
 
 #endif

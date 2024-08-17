@@ -111,6 +111,7 @@ int send_packet(Packet packet, int socket){
     bzero(buffer,SIZE_PACKET);
     serialize_packet(packet, buffer);
 
+
     while(bytes_to_write > 0){
         n = write(socket, buffer + offset, SIZE_PACKET - offset);
         bytes_to_write -= n;
@@ -118,7 +119,6 @@ int send_packet(Packet packet, int socket){
     }
 
     
-    //std::cout << "Sent " << n << " bytes of packet " << packet.seqn << std::endl;
     if (n < 0){
         printf("Send error.\n");
         return -1;
@@ -139,10 +139,14 @@ Packet receive_packet(int socket){
         n = read(socket, buffer+offset, SIZE_PACKET - offset);
         bytes_to_receive -= n;
         offset += n;
+        if(n==0 || n==-1){
+            break;
+        }
 
     }
 
-    
+
+
     if (n == 0)
     {
         printf("Client disconnected.\n");
@@ -205,14 +209,12 @@ int send_file(char* file_path, int socket){
 
     //enviar packet com tamanho do arquivo
     char *filesize_buffer;
-    //long_to_bytes(numbytes,filesize_buffer);
     filesize_buffer = long_to_bytes(numbytes);
     Packet packet_filesize = create_packet(PACKET_FILE_LENGTH,0,1,sizeof(numbytes),filesize_buffer);
     send_packet(packet_filesize,socket);
     free(packet_filesize.payload);
 
     // não copiar mais bytes do que MAX_FILE_SIZE
-    //bytes_to_read = std::min(numbytes, (long)MAX_FILE_SIZE);
     bytes_to_read = numbytes;
 
     // alocar memória para armazenar conteúdo do arquivo
@@ -228,15 +230,11 @@ int send_file(char* file_path, int socket){
     int seq = 0;
     int total_size = packets_to_send;
 
-    //printf("bytes_to_read: %d\n", bytes_to_read);
-    //printf("Need to send %d packets.\n", packets_to_send);
-
     // manda fragmentos do arquivo se for maior que MAX_PAYLOAD_SIZE
     while(bytes_to_read > MAX_PAYLOAD_SIZE){
         Packet packet = create_packet(PACKET_FILE_DATA,seq,total_size,MAX_PAYLOAD_SIZE,file_buffer+seq*MAX_PAYLOAD_SIZE);
 
 
-        //printf("Trying to send file fragment number %d\n", seq);
         send_packet(packet,socket);
 
         seq++;
@@ -248,13 +246,7 @@ int send_file(char* file_path, int socket){
     if(bytes_to_read > 0){
         Packet packet = create_packet(PACKET_FILE_DATA,seq,total_size,bytes_to_read,file_buffer+seq*MAX_PAYLOAD_SIZE);
 
-        //printf("Payload of this packet: %s\n", packet.payload);
-        //printf("strlen of payload: %d\n", strlen(packet.payload));
-        //printf("bytes_to_read: %d\n", bytes_to_read);
-        //printf("Trying to send file fragment number %d\n", seq);
-        
         send_packet(packet,socket);
-        //printf("Sent file fragment number %d\n", seq);
         //bzero(packet_buffer,SIZE_PACKET);
 
         // evitar um memory leak
@@ -264,20 +256,6 @@ int send_file(char* file_path, int socket){
     fclose(file);
 
 
-
-    // cria um pacote com o conteúdo lido do arquivo
-    //Packet packet = create_packet(PACKET_FILE_DATA,-1,-1,-1,file_buffer); // TODO: colocar valores corretos
-
-    //bzero(packet_buffer,SIZE_PACKET);
-
-    // serializa o pacote
-    //serialize_packet(packet, packet_buffer);
-
-    // printf("Sending packet:\n");
-    // print_packet(packet);
-
-    // manda o pacote
-	//int n = write(socket, packet_buffer,SIZE_PACKET);
     
     return 0;
 }
@@ -290,19 +268,11 @@ int send_file(std::string file_path, int socket){
     int bytes_to_read;
     struct stat attrib;
 
-    //FILE * file;
     ifstream file(file_path, ios::in|ios::binary|ios::ate);
 
     int n;
 
-    std::cout << "Will send file from path: " << file_path << std::endl;
 
-    // abrir arquivo
-    //file = fopen(file_path.c_str(), "rb");
-    //if (file == NULL) {printf("File error.\n"); return -1;}
-    //cout << "fopen returned " << file << endl;
-    //printf("fopen returned %ld \n", file);
-    //file.open(file_path);
 
     if(file.is_open())
     {// obter nome do arquivo
@@ -329,16 +299,6 @@ int send_file(std::string file_path, int socket){
         //Packet packet_mtime = create_packet(PACKET_FILE_MTIME, 1, 1, 1, );
 
 
-        // obter comprimento do arquivo
-        //fseek(file, 0L, SEEK_END);
-        //numbytes = ftell(file);
-        // resetar ponteiro do arquivo ao início do arquivo
-        //fseek(file, 0L, SEEK_SET);
-
-        //numbytes = file.tellg();
-        
-        cout << "Outgoing file has " << numbytes << " bytes.\n";
-
         //enviar packet com tamanho do arquivo
         char *filesize_buffer;
         filesize_buffer = long_to_bytes(numbytes);
@@ -349,12 +309,9 @@ int send_file(std::string file_path, int socket){
         bytes_to_read = numbytes;
 
         // alocar memória para armazenar conteúdo do arquivo
-        // file_buffer = (char*)calloc(bytes_to_read, sizeof(char));
-        // if(file_buffer == NULL) {printf("Memory error.\n"); return -1;}
         file_buffer = new char[numbytes];
 
         // copia conteúdo do arquivo para a memória
-        //fread(file_buffer, sizeof(char), bytes_to_read, file);
         file.seekg(0,ios::beg);
         file.read (file_buffer, numbytes);
 
@@ -384,12 +341,11 @@ int send_file(std::string file_path, int socket){
             free(packet.payload);
         }
 
-        //fclose(file);
         file.close();
         delete[] file_buffer;
     } else{
          cout << "File error. " << endl;
-         send_error(socket);
+         //send_error(socket);
     }
        
     
@@ -415,9 +371,6 @@ int receive_file(char* buffer, int socket){
     }
 
     int total_size = packet.total_size;
-    //filesize += packet.length;
-    //printf("Should receive %d packets.\n", total_size);
-    //printf("Received fragment number %d\n", packet.seqn);
     
     memcpy(buffer+bytes_read, packet.payload, packet.length);
     bytes_read += packet.length;
@@ -432,8 +385,6 @@ int receive_file(char* buffer, int socket){
             printf("Wrong packet type received in receive_file.\n");
             return -1;
         }
-        //printf("Received fragment number %d\n", packet.seqn);
-        //printf("Payload:\n%s\n",packet.payload);
         memcpy(buffer+bytes_read, packet.payload, packet.length);
         bytes_read += packet.length;
     }

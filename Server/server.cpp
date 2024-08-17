@@ -14,6 +14,8 @@
 #include <vector>
 #include <iostream>
 #include <iterator>
+#include <dirent.h>
+#include <filesystem>
 
 //  sugestoes do professor
 //  main em loop recebendo requests e criando threads para cada accept com cliente(device) DONE
@@ -30,6 +32,8 @@
 
 using namespace std;
 
+namespace fs = std::filesystem;
+
 vector<User *> connected_users;
 
 struct thread_args
@@ -42,25 +46,20 @@ struct thread_args
 void *handle_client(void *arg)
 {
 	struct thread_args args = *((struct thread_args *)arg);
-	// int client_socket = *((int *)arg);
 	int client_socket = args.socket;
 
 	Packet packet;
 
 	std::string username = args.username;
-	std::string sync_dir = "./sync_dir_";
-    std::string sync_dir_user;
-    sync_dir_user = sync_dir + username;
+	string sync_dir_user = get_sync_dir_relative_path(username);
 
 	create_sync_dir(username);
 
-	//std::cout << "Username recebido na handle_client: " << username << std::endl;
 
-	char buffer[SIZE_PACKET] = {0};
+
 	char file_buffer[MAX_FILE_SIZE];
 	char *file_buffer_new;
 
-	char *i_gotchu_message = "I got your message!\n";
 
 	// Read data from client
 	while (1)
@@ -68,11 +67,11 @@ void *handle_client(void *arg)
 		int message;
 		int filesize = 0;
 		std::string filename;
-		//std::string save_path = "./sync_dir";
 		struct stat sb;
+		int file_count = 0;
+
 
 		/* read from the socket */
-		//message = read(client_socket, buffer, sizeof(buffer));
 		packet = receive_packet(client_socket);
 		if (packet.type==0)
 		{
@@ -89,64 +88,56 @@ void *handle_client(void *arg)
 		/* write in the socket */
 		else
 		{
-			//printf("Here is the message: %s\n", buffer);
-			// Packet packet = deserialize_packet(buffer);
-			// printf("Received packet:\n");
-			// print_packet(packet);
 
-			Packet packet_filesize;
+			Packet packet_filesize, packet_temp, packet_file_count;
 			switch (packet.type)
 			{
 			case PACKET_FILE_SIGNAL:
 				// save filename from packet.payload here
 				filename = packet.payload;
-				std::cout << "Will receive file " << filename << std::endl;
+				std::cout << "Receiving file " << filename << " from user " << username <<std::endl;
 				packet_filesize = receive_packet(client_socket);
 				if(packet_filesize.type != PACKET_FILE_LENGTH){
 					cout << "Wrong packet type received. Expected file length. Received " << packet_filesize.type << endl;
 				}
 				filesize = bytes_to_long(packet_filesize.payload);
-				std::cout << "File has " << filesize << " bytes" << std::endl;
 
 				file_buffer_new = (char*)calloc(filesize, sizeof(char));
 
 				if(receive_file(file_buffer_new, client_socket) != -1){
-					std::cout << "Saving file " << filename << std::endl;
 					save_file(sync_dir_user+"/"+filename, filesize, file_buffer_new);
 				}
 
 				
 
-				//printf("File received: \n%s\n", file_buffer);
 				break;
 
 			case PACKET_GET_SYNC_DIR:
-			
-				create_sync_dir(username);
+				  
+				for (const auto &entry : fs::directory_iterator(sync_dir_user))
+				{
+					if (entry.is_regular_file())
+					{
+						//std::cout << entry.path().filename().string() << std::endl;
+						file_count++;
+					}
+        		}
+        
+				packet_file_count = create_packet(PACKET_FILE_COUNT,1,1,1,int_to_bytes(file_count));
+				send_packet(packet_file_count, client_socket);
+				
+				
 				
 				
 			break;
 			default:
 				printf("Received invalid packet type: %d\n", packet.type);
 			}
-
-			message = write(client_socket, i_gotchu_message, strlen(i_gotchu_message));
-			if (message < 0)
-				printf("ERROR writing to socket");
 		}
 	}
 
-	// n = read(client_socket, buffer, 256);
-	// if (n < 0)
-	// 	printf("ERROR reading from socket");
-	// printf("Here is the message: %s\n", buffer);
 
-	// n = write(client_socket, "I got your message", 18);
-	// if (n < 0)
-	// 	printf("ERROR writing to socket");
 
-	// close(client_socket);
-	bzero(buffer, 256);
 	// Close the client socket
 	close(client_socket);
 	pthread_exit(NULL);

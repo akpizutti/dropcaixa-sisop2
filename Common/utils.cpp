@@ -2,6 +2,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <vector>
 
 using namespace std;
 
@@ -53,8 +54,35 @@ char* long_to_bytes(long number){
     return buffer;
 }
 
+char* int_to_bytes(int number){
+    char *buffer = (char*)calloc(sizeof(int), sizeof(char));
+    buffer[0] = (char)(number & 0xff);
+    buffer[1] = (char)((number >> 8) & 0xff);
+    buffer[2] = (char)((number >> 16) & 0xff);
+    buffer[3] = (char)((number >> 24) & 0xff);
+    // std::cout << "\nin long_to_bytes() overload: \n"; //<< (unsigned short)buffer[0] << " " << (unsigned short)buffer[2] << " "<< (unsigned short)buffer[3] << " "<< (unsigned short)buffer[4] << std::endl;
+    // printf("%hhu\n",buffer[0]);
+    // printf("%hhu\n",buffer[1]);
+    // printf("%hhu\n",buffer[2]);
+    // printf("%hhu\n",buffer[3]);
+    // std::cout << "with input  " << number << std::endl;
+    return buffer;
+}
+
+
 
 long bytes_to_long(char* bytes){
+    // std::cout << "\nin bytes_to_long(): \n"; //<< (unsigned short)buffer[0] << " " << (unsigned short)buffer[2] << " "<< (unsigned short)buffer[3] << " "<< (unsigned short)buffer[4] << std::endl;
+    // printf("%hhu\n",bytes[0]);
+    // printf("%hhu\n",bytes[1]);
+    // printf("%hhu\n",bytes[2]);
+    // printf("%hhu\n",bytes[3]);
+    long ret = (bytes[0] & 0xff) + ((bytes[1] << 8) & 0xff00) + ((bytes[2] << 16) & 0xff0000) + ((bytes[3] << 24) & 0xff000000);
+    // std::cout << "\nret = " << ret << std::endl;
+    return ret;
+}
+
+int bytes_to_int(char* bytes){
     // std::cout << "\nin bytes_to_long(): \n"; //<< (unsigned short)buffer[0] << " " << (unsigned short)buffer[2] << " "<< (unsigned short)buffer[3] << " "<< (unsigned short)buffer[4] << std::endl;
     // printf("%hhu\n",bytes[0]);
     // printf("%hhu\n",bytes[1]);
