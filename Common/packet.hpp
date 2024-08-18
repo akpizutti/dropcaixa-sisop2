@@ -52,7 +52,6 @@ int send_packet(Packet packet, int socket);
 Packet receive_packet(int socket);
 
 // envia um arquivo para o socket especificado
-int send_file(char *filePath, int socket);
 int send_file(std::string filePath, int socket);
 
 // recebe um arquivo e coloca seu conteúdo em buffer
