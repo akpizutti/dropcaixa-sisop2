@@ -132,17 +132,18 @@ void get_all_files(string username, int socket){
     for(int i=0; i<filecount; i++){
         Packet packet_signal = receive_packet(socket);
         if(packet_signal.type != PACKET_FILE_SIGNAL){
-            cout << "Receivec wrong packet type in get_all_files: " << packet_signal.type << endl;
+            cout << "Received wrong packet type in get_all_files: " << packet_signal.type << endl;
             return;
         }
 
         string filename = packet_signal.payload;
 
-        
-
         Packet packet_filesize = receive_packet(socket);
 
         int filesize = bytes_to_int(packet_filesize.payload);
+
+        Packet packet_mtime = receive_packet(socket);
+        long modify_time = bytes_to_long(packet_mtime.payload);
 
         //char* file_buffer_new = (char*)calloc(filesize, sizeof(char));
         char* file_buffer = new char[filesize];

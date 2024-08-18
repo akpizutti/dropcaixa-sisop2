@@ -40,7 +40,7 @@ Packet create_packet(int type, int seqn, int total_size, int length, char* paylo
     ret.seqn = seqn;
     ret.total_size = total_size;
     ret.length = length;
-    ret.payload = (char*) malloc(MAX_PAYLOAD_SIZE* sizeof(char));
+    ret.payload = (char*) calloc(MAX_PAYLOAD_SIZE, sizeof(char));
     if(payload != NULL){
         memcpy(ret.payload, payload, MAX_PAYLOAD_SIZE);
     }
@@ -188,6 +188,7 @@ int send_file(char* file_path, int socket){
     stat(file_path,&attrib);
     time_t modify_time = attrib.st_mtim.tv_sec;
     time_t create_time = attrib.st_ctim.tv_sec;
+    
 
 
     // enviar packet de signal para recipiente
@@ -196,8 +197,9 @@ int send_file(char* file_path, int socket){
     free(signal_packet.payload);
 
     
-
-    //Packet packet_mtime = create_packet(PACKET_FILE_MTIME, 1, 1, 1, );
+    Packet packet_mtime = create_packet(PACKET_FILE_MTIME, 1, 1, sizeof(modify_time), long_to_bytes(modify_time));
+    send_packet(packet_mtime, socket);
+    free(packet_mtime.payload);
 
 
     // obter comprimento do arquivo
@@ -214,7 +216,9 @@ int send_file(char* file_path, int socket){
     send_packet(packet_filesize,socket);
     free(packet_filesize.payload);
 
-    // não copiar mais bytes do que MAX_FILE_SIZE
+
+
+
     bytes_to_read = numbytes;
 
     // alocar memória para armazenar conteúdo do arquivo
@@ -295,9 +299,6 @@ int send_file(std::string file_path, int socket){
         send_packet(signal_packet,socket);
         free(signal_packet.payload);
 
-        
-        //Packet packet_mtime = create_packet(PACKET_FILE_MTIME, 1, 1, 1, );
-
 
         //enviar packet com tamanho do arquivo
         char *filesize_buffer;
@@ -305,6 +306,11 @@ int send_file(std::string file_path, int socket){
         Packet packet_filesize = create_packet(PACKET_FILE_LENGTH,0,1,sizeof(numbytes),filesize_buffer);
         send_packet(packet_filesize,socket);
         free(packet_filesize.payload);
+
+        //enviar packet com timestamp de modificação do arquivo
+        Packet packet_mtime = create_packet(PACKET_FILE_MTIME, 1, 1, sizeof(modify_time), long_to_bytes(modify_time));
+        send_packet(packet_mtime, socket);
+        free(packet_mtime.payload);
 
         bytes_to_read = numbytes;
 

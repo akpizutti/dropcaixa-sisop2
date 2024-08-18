@@ -90,7 +90,9 @@ void *handle_client(void *arg)
 		else
 		{
 
-			Packet packet_filesize, packet_temp, packet_file_count;
+			Packet packet_filesize, packet_temp, packet_file_count, packet_mtime;
+			long modify_time;
+
 			switch (packet.type)
 			{
 			case PACKET_FILE_SIGNAL:
@@ -102,6 +104,10 @@ void *handle_client(void *arg)
 					cout << "Wrong packet type received. Expected file length. Received " << packet_filesize.type << endl;
 				}
 				filesize = bytes_to_int(packet_filesize.payload);
+
+				packet_mtime = receive_packet(client_socket);
+				modify_time = bytes_to_long(packet_mtime.payload);
+
 
 				file_buffer_new = (char*)calloc(filesize, sizeof(char));
 

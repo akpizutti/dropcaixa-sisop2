@@ -6,13 +6,14 @@
 #include <iostream> 
 #include <vector>
 #include <sys/stat.h>
+#include <math.h>
 
 using namespace std;
 
 int main(){
     User *test_user = new User("Paulo");
     //std::vector<User> connected_users;
-    int a = MAX_PAYLOAD_SIZE;
+    //int a = MAX_PAYLOAD_SIZE;
 
 
 
@@ -43,13 +44,25 @@ int main(){
     // printf("%hhu\n",buffer[3]);
 
 
-    FILE* file = fopen("a.txt", "r+");
-    if (file == NULL) {printf("File error.\n"); return -1;}
-    //cout << "fopen returned " << file << endl;
-    //printf("fopen returned %ld", file);
-    cout << "sizeof FILE*: " << sizeof(file) << endl;
-    cout << "sizeof long: " << sizeof(long) << endl;
-    cout << "sizeof int : " << sizeof(int) << endl;
+    // FILE* file = fopen("a.txt", "r+");
+    // if (file == NULL) {printf("File error.\n"); return -1;}
+    // //cout << "fopen returned " << file << endl;
+    // //printf("fopen returned %ld", file);
+    // cout << "sizeof FILE*: " << sizeof(file) << endl;
+    // cout << "sizeof long: " << sizeof(long) << endl;
+    // cout << "sizeof int : " << sizeof(int) << endl;
+
+
+    unsigned long a = 0xff00ff00ff00ff00;
+    char* a_bytes = long_to_bytes(a);
+    for(int i=0;i<sizeof(long);i++){
+        printf("%hhu\n",a_bytes[i]);
+    }
+
+    cout << "result of conversion: " << (unsigned long)bytes_to_long(a_bytes);
+
+
+
 
 
     return(0);
