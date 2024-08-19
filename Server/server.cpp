@@ -68,6 +68,7 @@ void *handle_client(void *arg)
 		int message;
 		int filesize = 0;
 		std::string filename;
+		std::string file_to_delete;
 		struct stat sb;
 		int file_count = 0;
 
@@ -145,6 +146,25 @@ void *handle_client(void *arg)
 				
 				
 			break;
+
+			case PACKET_DELETE_FILE:
+    			filename = packet.payload;
+    			std::cout << "Request to delete file: " << filename << std::endl;
+
+    			// Check if the file exists
+    			file_to_delete = sync_dir_user + "/" + filename;
+    			if (stat(file_to_delete.c_str(), &sb) == 0) {
+        			// File exists, delete it
+        			if (remove(file_to_delete.c_str()) == 0) {
+            			std::cout << "File " << filename << " deleted successfully." << std::endl;
+        			} else {
+            			std::cerr << "Error deleting file " << filename << std::endl;
+        			}
+    			} else {
+        			std::cerr << "File " << filename << " does not exist." << std::endl;
+    			}
+    		break;
+
 			default:
 				printf("Received invalid packet type: %d\n", packet.type);
 			}
