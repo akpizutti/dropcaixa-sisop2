@@ -263,7 +263,7 @@ int main(int argc, char *argv[])
 
     char buffer[256];
 
-    if (argc < 2) // mudar pra 3 quando tiver porta p escolher
+    if (argc < 4) 
     {
         std::cerr << "Usage: " << argv[0] << " <username> <server_ip_address> <port>" << std::endl;
         exit(0);
@@ -271,7 +271,10 @@ int main(int argc, char *argv[])
 
     std::string username = argv[1];
 
-    create_sync_dir(username);
+    int port = atoi(argv[3]);
+
+
+    
 
     server = gethostbyname(argv[2]);
     if (server == NULL)
@@ -280,16 +283,25 @@ int main(int argc, char *argv[])
         exit(0);
     }
 
-    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+    if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1){
         printf("ERROR opening socket\n");
+        exit(0);
+    }
+        
 
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(PORT);
+    serv_addr.sin_port = htons(port);
     serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
     bzero(&(serv_addr.sin_zero), 8);
 
-    if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+    if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){
         printf("ERROR connecting\n");
+        exit(0);
+    }
+        
+
+    cout << "Connected.\n";
+    create_sync_dir(username);
 
     // envia username para o server
     Packet id = create_packet(PACKET_USER_ID, 0, 1, strlen(argv[1]), argv[1]);
