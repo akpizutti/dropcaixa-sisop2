@@ -29,4 +29,7 @@ test: users utils
 clean:
 	rm -f Common/*.o Client/*.o Server/*.o Misc/*.o
 	rm -f Client/client Monitor/monitor Server/server Misc/test 
+
+clear_sync_dirs:
+	rm -rf Client/sync_dir* Server/sync_dir* 
 	
