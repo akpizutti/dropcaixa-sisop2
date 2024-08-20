@@ -79,7 +79,7 @@ void *handle_client(void *arg)
 		{
 			//connected_users.erase(std::remove(connected_users.begin(), connected_users.end(), username), connected_users.end());
 			//tirar device connected
-			printf("Client disconnected.\n");
+			cout << "Client " << username << " disconnected.\n" ;
 			break;
 		}
 		else if (packet.type == -1)
@@ -99,7 +99,7 @@ void *handle_client(void *arg)
 			case PACKET_FILE_SIGNAL:
 				// save filename from packet.payload here
 				filename = packet.payload;
-				std::cout << "Receiving file " << filename << " from user " << username <<std::endl;
+				//std::cout << "Receiving file " << filename << " from user " << username <<std::endl;
 				packet_filesize = receive_packet(client_socket);
 				if(packet_filesize.type != PACKET_FILE_LENGTH){
 					cout << "Wrong packet type received. Expected file length. Received " << packet_filesize.type << endl;

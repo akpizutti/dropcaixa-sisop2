@@ -295,7 +295,7 @@ int receive_file(char* buffer, int socket){
 
     
 
-    printf("Finished receiving file.\n");
+    //printf("Finished receiving file.\n");
     return bytes_read;
 }
 
