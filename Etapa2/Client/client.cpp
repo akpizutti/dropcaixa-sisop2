@@ -227,9 +227,9 @@ void handle_user_commands(char command, int sockfd, std::string username)
         // save_file()
         fs::copy(file_path, sync_dir_user, fs::copy_options::overwrite_existing);
 
-        mutex_send_file.lock();
-        send_file(file_path, sockfd);
-        mutex_send_file.unlock();
+        // mutex_send_file.lock();
+        // send_file(file_path, sockfd);
+        // mutex_send_file.unlock();
         // quandro server processar e mandar sinal de volta, sincronizar
         break;
 
