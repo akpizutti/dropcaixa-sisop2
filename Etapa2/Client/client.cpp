@@ -165,7 +165,7 @@ void handle_user_commands(char command, int sockfd, std::string username)
 
     std::string file_path;
     string sync_dir_user = get_sync_dir_relative_path(username);
-    std::string file_to_delete;
+    std::string file_to_delete, filename;
 
     Packet packet_sync_signal;
 
@@ -218,9 +218,7 @@ void handle_user_commands(char command, int sockfd, std::string username)
         break;
 
     case 'u':
-        // sincronizar aqui
-        // TODO: mutex aqui?
-        std::cout << "Enter the path of file to send: ";
+        std::cout << "Enter the path of file to upload: ";
 
         std::cin >> file_path;
 
@@ -231,6 +229,12 @@ void handle_user_commands(char command, int sockfd, std::string username)
         // send_file(file_path, sockfd);
         // mutex_send_file.unlock();
         // quandro server processar e mandar sinal de volta, sincronizar
+        break;
+
+    case 'f':
+        cout << "Enter the name of file to download: ";
+        cin >> filename;
+        fs::copy(sync_dir_user+"/"+ filename, "./",  fs::copy_options::overwrite_existing);
         break;
 
     default:
