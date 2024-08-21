@@ -5,10 +5,10 @@
         "name": "Debug Program",
         "type": "cppdbg",
         "request": "launch",
-        "program": "${workspaceFolder}/Client/client",
-        "args": ["akim", "localhost"],
+        "program": "${workspaceFolder}/Etapa2/Client/client",
+        "args": ["akim", "localhost", "4000"],
         "stopAtEntry": false,
-        "cwd": "${workspaceFolder}",
+        "cwd": "${workspaceFolder}/Etapa2",
         "environment": [],
         "externalConsole": true,
         "MIMode": "gdb",
@@ -19,7 +19,7 @@
             "ignoreFailures": true
           }
         ],
-        "preLaunchTask": "build-all",  // Tarefa de build que será executada antes do debug
+        //"preLaunchTask": "",  // Tarefa de build que será executada antes do debug
         "miDebuggerPath": "/usr/bin/gdb",
         "logging": {
           "trace": true,

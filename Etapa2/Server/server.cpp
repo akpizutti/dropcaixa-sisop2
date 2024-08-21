@@ -91,7 +91,7 @@ void *handle_client(void *arg)
 		else
 		{
 
-			Packet packet_filesize, packet_temp, packet_file_count, packet_mtime;
+			Packet packet_filesize, packet_temp, packet_file_count, packet_mtime, packet_signal_allfiles;
 			long modify_time;
 
 			switch (packet.type)
@@ -131,6 +131,9 @@ void *handle_client(void *arg)
 						file_count++;
 					}
         		}
+
+				packet_signal_allfiles = create_packet(PACKET_SIGNAL_SYNC,0,0,0,NULL);
+				send_packet(packet_signal_allfiles, client_socket);
         
 				packet_file_count = create_packet(PACKET_FILE_COUNT,1,1,1,int_to_bytes(file_count));
 				send_packet(packet_file_count, client_socket);

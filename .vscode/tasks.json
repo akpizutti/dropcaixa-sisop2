@@ -25,7 +25,7 @@
         {
             "label": "build-all",
             "type": "shell",
-            "command": "make",
+            "command": "./Etapa2/make",
             "args": [
                 "all"
             ],
@@ -39,7 +39,7 @@
         {
             "label": "build-client",
             "type": "shell",
-            "command": "make",
+            "command": "./Etapa2/make",
             "args": [
                 "client"
             ],
@@ -51,7 +51,7 @@
         {
             "label": "build-server",
             "type": "shell",
-            "command": "make",
+            "command": "./Etapa2/make",
             "args": [
                 "server"
             ],
@@ -63,7 +63,7 @@
         {
             "label": "clean",
             "type": "shell",
-            "command": "make",
+            "command": "./Etapa2/make",
             "args": [
                 "clean"
             ],

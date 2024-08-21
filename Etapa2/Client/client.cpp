@@ -28,6 +28,7 @@ using namespace std;
 
 namespace fs = std::filesystem;
 
+bool is_connected = false;
 bool is_watching = false;
 
 struct thread_args
@@ -38,6 +39,49 @@ struct thread_args
 
 vector<string> send_queue;
 mutex mutex_send_file;
+
+void get_all_files(string username, int socket){
+    string sync_dir_user = get_sync_dir_relative_path(username);
+
+    
+
+    
+    Packet packet_filecount = receive_packet(socket);
+    
+    int filecount = bytes_to_int(packet_filecount.payload);
+
+    is_watching = false;
+
+    for(int i=0; i<filecount; i++){
+        Packet packet_signal = receive_packet(socket);
+        if(packet_signal.type != PACKET_FILE_SIGNAL){
+            cout << "Received wrong packet type in get_all_files: " << packet_signal.type << endl;
+            return;
+        }
+
+        string filename = packet_signal.payload;
+
+        Packet packet_filesize = receive_packet(socket);
+
+        int filesize = bytes_to_int(packet_filesize.payload);
+
+        Packet packet_mtime = receive_packet(socket);
+        long modify_time = bytes_to_long(packet_mtime.payload);
+
+        //char* file_buffer_new = (char*)calloc(filesize, sizeof(char));
+        char* file_buffer = new char[filesize];
+
+        
+        if(receive_file(file_buffer, socket) != -1){
+            save_file(sync_dir_user+"/"+filename, filesize, file_buffer);
+        }
+    }
+
+    is_watching = true;
+
+    return;
+
+}
 
 void *handle_inotify(void *arg)
 {
@@ -118,50 +162,40 @@ void *handle_inotify(void *arg)
     pthread_exit(NULL);
 }
 
-void get_all_files(string username, int socket){
-    string sync_dir_user = get_sync_dir_relative_path(username);
+void *listenThread(void *arg){
+    struct thread_args args = *((struct thread_args *)arg);
+    int socket = args.socket;
+    std::string username = args.username;
+    string user_sync_dir = get_sync_dir_relative_path(username);
 
-    //envia sinal para baixar todos os arquivos
-    Packet packet_sync_signal = create_packet(PACKET_GET_SYNC_DIR, 0, 0, 0, NULL);
-    send_packet(packet_sync_signal, socket);
+    Packet received_packet;
 
-    
-    Packet packet_filecount = receive_packet(socket);
-    
-    int filecount = bytes_to_int(packet_filecount.payload);
+    cout << "Hello from listenThread\n";
 
-    is_watching = false;
+    do{
+        received_packet = receive_packet(socket);
 
-    for(int i=0; i<filecount; i++){
-        Packet packet_signal = receive_packet(socket);
-        if(packet_signal.type != PACKET_FILE_SIGNAL){
-            cout << "Received wrong packet type in get_all_files: " << packet_signal.type << endl;
-            return;
+        cout << "listenThread recebeu pacote tipo " << received_packet.type << endl;
+
+        if(received_packet.type!= 0 && received_packet.type !=-1)
+        {
+            switch(received_packet.type){
+            case PACKET_SIGNAL_SYNC:
+                get_all_files(username,socket);
+                break;
+            default:
+                cout << "listenThread recebeu pacote errado: " << received_packet.type;
+                break;
+            }
         }
-
-        string filename = packet_signal.payload;
-
-        Packet packet_filesize = receive_packet(socket);
-
-        int filesize = bytes_to_int(packet_filesize.payload);
-
-        Packet packet_mtime = receive_packet(socket);
-        long modify_time = bytes_to_long(packet_mtime.payload);
-
-        //char* file_buffer_new = (char*)calloc(filesize, sizeof(char));
-        char* file_buffer = new char[filesize];
-
         
-        if(receive_file(file_buffer, socket) != -1){
-            save_file(sync_dir_user+"/"+filename, filesize, file_buffer);
-        }
-    }
+    } while (received_packet.type!= 0 && received_packet.type !=-1);
 
-    is_watching = true;
-
-    return;
-
+    cout<< "saindo da listenThread\n";
+    pthread_exit(NULL);
 }
+
+
 
 void handle_user_commands(char command, int sockfd, std::string username)
 {
@@ -212,10 +246,14 @@ void handle_user_commands(char command, int sockfd, std::string username)
 
     case 'g':
 
-        // manda sinal pro servidor criar sync_dir
+        //envia sinal para baixar todos os arquivos
+        packet_sync_signal = create_packet(PACKET_GET_SYNC_DIR, 0, 0, 0, NULL);
+        send_packet(packet_sync_signal, sockfd);
+
+        // listenThread vai receber os arquivos
 
 
-        get_all_files(username, sockfd);
+        //get_all_files(username, sockfd);
 
         break;
 
@@ -305,13 +343,21 @@ int main(int argc, char *argv[])
         exit(0);
     }
         
-
+    is_connected = true;
     cout << "Connected.\n";
     create_sync_dir(username);
 
     // envia username para o server
     Packet id = create_packet(PACKET_USER_ID, 0, 1, strlen(argv[1]), argv[1]);
     send_packet(id, sockfd);
+
+    // Thread para receber respostas do servidor
+    struct thread_args args_listen = {sockfd, argv[1]};
+    pthread_t listen_thread;
+    if (pthread_create(&listen_thread, NULL, listenThread, &args_listen) != 0){
+        perror("pthread_create error");
+        exit(1);
+    }
 
     // Thread para inotify
     struct thread_args args = {sockfd, argv[1]};
@@ -325,7 +371,7 @@ int main(int argc, char *argv[])
 
     char command = 0;
     print_available_commands();
-    while (command != 'q')
+    while (command != 'q' && is_connected == true)
     {
         std::cin >> command;
         if (command != 'q')
