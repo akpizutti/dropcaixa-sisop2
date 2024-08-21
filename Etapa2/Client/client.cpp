@@ -102,7 +102,10 @@ void *handle_inotify(void *arg)
                 else if (event->mask & IN_DELETE)
                 {
                     printf("The file %s was deleted.\n", event->name);
-                    // TODO: pedir pro servidor deletar arquivo aqui <-----------
+                    string filename = event->name;
+
+                    Packet packet_delete_signal = create_packet(PACKET_DELETE_FILE, 0, 0, filename.size(), (char*)filename.c_str());
+                    send_packet(packet_delete_signal, socket);
                 }
             }
             i += EVENT_SIZE + event->len;
@@ -181,19 +184,18 @@ void handle_user_commands(char command, int sockfd, std::string username)
     
     case 'd':
         std::cout << "Enter the name of the file to delete: ";
-        std::cin >> file_path;  // Aqui, file_path é apenas o nome do arquivo
-
-        // Envia o comando para deletar o arquivo no servidor
-        packet_sync_signal = create_packet(PACKET_DELETE_FILE, 0, 0, file_path.size(), (char*)file_path.c_str());
-        send_packet(packet_sync_signal, sockfd);
+        std::cin >> filename; 
+        
 
         // Deleta o arquivo localmente no cliente
-        file_to_delete = sync_dir_user + "/" + file_path;
+        file_to_delete = sync_dir_user + "/" + filename;
         if (remove(file_to_delete.c_str()) == 0) {
-            std::cout << "File " << file_path << " deleted successfully from client." << std::endl;
+            std::cout << "File " << filename << " deleted successfully from client." << std::endl;
         } else {
-            std::cerr << "Error deleting file " << file_path << " from client." << std::endl;
+            std::cerr << "Error deleting file " << filename << " from client." << std::endl;
         }
+
+        // thread do inotify manda sinal pro servidor deletar 
     break;
 
     case 'c':
