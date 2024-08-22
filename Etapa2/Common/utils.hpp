@@ -3,12 +3,12 @@
 
 #include <string>
 
-struct connection_info
+typedef struct connection_info
 {
 	int id;
 	int socket;
 	std::string username;
-};
+} connection_info;
 
 int save_file(std::string path, int filesize, char* buffer);
 

@@ -35,7 +35,9 @@ using namespace std;
 namespace fs = std::filesystem;
 
 vector<User *> connected_users;
+vector<connection_info> connections;
 
+int id=0;
 
 
 // Function to handle each client connection
@@ -236,6 +238,9 @@ int main(int argc, char *argv[])
 			}
 			else
 			{
+				connection_info client_info = {id,newsockfd,user_packet.payload};
+				id++;
+				connections.push_back(client_info);
 
 				User *new_user = new User(user_packet.payload);
 				new_user->set_connected_devices(1); 
