@@ -3,6 +3,13 @@
 
 #include <string>
 
+struct connection_info
+{
+	int id;
+	int socket;
+	std::string username;
+};
+
 int save_file(std::string path, int filesize, char* buffer);
 
 // these functions are made for little-endian systems

@@ -31,12 +31,6 @@ namespace fs = std::filesystem;
 bool is_connected = false;
 bool is_watching = false;
 
-struct thread_args
-{
-    int socket;
-    std::string username;
-};
-
 vector<string> send_queue;
 mutex mutex_send_file;
 
@@ -91,7 +85,7 @@ void *handle_inotify(void *arg)
     char buffer[BUF_LEN];
 
 
-    struct thread_args args = *((struct thread_args *)arg);
+    struct connection_info args = *((struct connection_info *)arg);
 
     int socket = args.socket;
 
@@ -163,7 +157,7 @@ void *handle_inotify(void *arg)
 }
 
 void *listenThread(void *arg){
-    struct thread_args args = *((struct thread_args *)arg);
+    struct connection_info args = *((struct connection_info *)arg);
     int socket = args.socket;
     std::string username = args.username;
     string user_sync_dir = get_sync_dir_relative_path(username);
@@ -352,7 +346,7 @@ int main(int argc, char *argv[])
     send_packet(id, sockfd);
 
     // Thread para receber respostas do servidor
-    struct thread_args args_listen = {sockfd, argv[1]};
+    struct connection_info args_listen = {0, sockfd, argv[1]};
     pthread_t listen_thread;
     if (pthread_create(&listen_thread, NULL, listenThread, &args_listen) != 0){
         perror("pthread_create error");
@@ -360,7 +354,7 @@ int main(int argc, char *argv[])
     }
 
     // Thread para inotify
-    struct thread_args args = {sockfd, argv[1]};
+    struct connection_info args = {0, sockfd, argv[1]};
     pthread_t inotify_thread;
     is_watching = true;
     if (pthread_create(&inotify_thread, NULL, handle_inotify, &args) != 0)

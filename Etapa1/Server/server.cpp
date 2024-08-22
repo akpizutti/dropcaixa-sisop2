@@ -36,7 +36,7 @@ namespace fs = std::filesystem;
 
 vector<User *> connected_users;
 
-struct thread_args
+struct connection_info
 {
 	int socket;
 	std::string username;
@@ -45,7 +45,7 @@ struct thread_args
 // Function to handle each client connection
 void *handle_client(void *arg)
 {
-	struct thread_args args = *((struct thread_args *)arg);
+	struct connection_info args = *((struct connection_info *)arg);
 	int client_socket = args.socket;
 
 	Packet packet;
@@ -248,7 +248,7 @@ int main(int argc, char *argv[])
 				print_users(connected_users);
 
 				// Create a new thread to handle the client
-				struct thread_args args = {newsockfd, new_user->get_username()};
+				struct connection_info args = {newsockfd, new_user->get_username()};
 				pthread_t thread_id;
 				if (pthread_create(&thread_id, NULL, handle_client, &args) != 0)
 				{

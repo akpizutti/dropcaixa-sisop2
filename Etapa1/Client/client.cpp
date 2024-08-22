@@ -30,7 +30,7 @@ namespace fs = std::filesystem;
 
 bool is_watching = false;
 
-struct thread_args
+struct connection_info
 {
     int socket;
     std::string username;
@@ -47,7 +47,7 @@ void *handle_inotify(void *arg)
     char buffer[BUF_LEN];
 
 
-    struct thread_args args = *((struct thread_args *)arg);
+    struct connection_info args = *((struct connection_info *)arg);
 
     int socket = args.socket;
 
@@ -308,7 +308,7 @@ int main(int argc, char *argv[])
     send_packet(id, sockfd);
 
     // Thread para inotify
-    struct thread_args args = {sockfd, argv[1]};
+    struct connection_info args = {sockfd, argv[1]};
     pthread_t inotify_thread;
     is_watching = true;
     if (pthread_create(&inotify_thread, NULL, handle_inotify, &args) != 0)
