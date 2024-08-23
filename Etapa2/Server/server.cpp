@@ -200,9 +200,12 @@ void print_users(std::vector<User *> users_list)
 
 int main(int argc, char *argv[])
 {
-	if (argc < 2) 
+	if (argc < 2 || (argc > 2 && argc < 5)) 
     {
-        std::cerr << "Usage: " << argv[0] << " <port> <backup> <primary_port>" << std::endl;
+        //std::cerr << "Usage: \nPrimary: " << argv[0] << " <port> <backup> <primary_ip> <primary_port>" << std::endl;
+		cout << "Usage:\n";
+		cout << "Primary: " << argv[0] << " <port>\n";
+		cout << "Backup:  " << argv[0] << " <port> <backup> <primary_ip> <primary_port>\n";
         exit(0);
 	}
 	if(argc > 2 && strcmp(argv[2],"backup") == 0){
