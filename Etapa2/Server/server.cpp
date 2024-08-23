@@ -1,7 +1,6 @@
 #include "../Common/users.hpp"
 #include "../Common/packet.hpp"
 #include "../Common/utils.hpp"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -36,6 +35,8 @@ namespace fs = std::filesystem;
 
 vector<User *> connected_users;
 vector<connection_info> connections;
+
+bool is_backup = false;
 
 int id = 0;
 
@@ -183,6 +184,11 @@ void *handle_client(void *arg)
 	pthread_exit(NULL);
 }
 
+
+void *backupThread(void *arg){
+	//aqui deve escutar mudanças de arquivo enviadas pelo servidor primário
+}
+
 void print_users(std::vector<User *> users_list)
 {
 	std::cout << "Connected Users:" << std::endl;
@@ -194,7 +200,18 @@ void print_users(std::vector<User *> users_list)
 
 int main(int argc, char *argv[])
 {
-	User *test_user = new User("Paulo");
+	if (argc < 2) 
+    {
+        std::cerr << "Usage: " << argv[0] << " <port> <backup> <primary_port>" << std::endl;
+        exit(0);
+	}
+	if(argc > 2 && strcmp(argv[2],"backup") == 0){
+		is_backup = true;
+		cout << "Backup mode.\n";
+		cout << "This server's port is " << argv[1] <<endl;
+		cout << "Primary server's port is " << argv[3] <<endl;
+		exit(0);
+	}
 
 	// SOCKET LOGIC
 	int sockfd, newsockfd, n;
