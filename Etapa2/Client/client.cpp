@@ -34,6 +34,8 @@ bool is_watching = false;
 vector<string> send_queue;
 mutex mutex_send_file;
 
+connection_info dados_conexao = connection_info();
+
 void get_all_files(string username, int socket){
     string sync_dir_user = get_sync_dir_relative_path(username);
 
@@ -85,13 +87,13 @@ void *handle_inotify(void *arg)
     char buffer[BUF_LEN];
 
 
-    struct connection_info args = *((struct connection_info *)arg);
+    //struct connection_info args = *((struct connection_info *)arg);
 
-    int socket = args.socket;
+    //int socket = dados_conexao.socket;
 
-    std::string username = args.username;
+    //std::string username = args.username;
     // std::cout << "Username recebido na handle_inotify: " << username << std::endl;
-    string user_sync_dir = get_sync_dir_relative_path(username);
+    string user_sync_dir = get_sync_dir_relative_path(dados_conexao.username);
 
     inotifyfd = inotify_init();
     inotifywd = inotify_add_watch(inotifyfd, user_sync_dir.c_str(), IN_CLOSE_WRITE | IN_CREATE | IN_DELETE | IN_MOVED_TO);
@@ -133,7 +135,7 @@ void *handle_inotify(void *arg)
                     //     send_file(user_sync_dir + "/" + filename, socket);
                     //     send_queue.erase(itr);
                     // } 
-                    send_file(user_sync_dir + "/" + filename, socket);
+                    send_file(user_sync_dir + "/" + filename, dados_conexao.socket);
                     mutex_send_file.unlock();
                         
                 }
@@ -143,7 +145,7 @@ void *handle_inotify(void *arg)
                     string filename = event->name;
 
                     Packet packet_delete_signal = create_packet(PACKET_DELETE_FILE, 0, 0, filename.size(), (char*)filename.c_str());
-                    send_packet(packet_delete_signal, socket);
+                    send_packet(packet_delete_signal, dados_conexao.socket);
                 }
             }
             i += EVENT_SIZE + event->len;
@@ -157,17 +159,17 @@ void *handle_inotify(void *arg)
 }
 
 void *listenThread(void *arg){
-    struct connection_info args = *((struct connection_info *)arg);
-    int socket = args.socket;
-    std::string username = args.username;
-    string user_sync_dir = get_sync_dir_relative_path(username);
+    //struct connection_info args = *((struct connection_info *)arg);
+    //int socket = args.socket;
+    //std::string username = args.username;
+    string user_sync_dir = get_sync_dir_relative_path(dados_conexao.username);
 
     Packet received_packet;
 
     cout << "Hello from listenThread\n";
 
     do{
-        received_packet = receive_packet(socket);
+        received_packet = receive_packet(dados_conexao.socket);
 
         cout << "listenThread recebeu pacote tipo " << received_packet.type << endl;
 
@@ -175,11 +177,11 @@ void *listenThread(void *arg){
         {
             switch(received_packet.type){
             case PACKET_SIGNAL_SYNC:
-                get_all_files(username,socket);
+                get_all_files(dados_conexao.username,dados_conexao.socket);
                 break;
             case PACKET_REJECT:
                 cout << "Connection rejected.";
-                close(socket);
+                close(dados_conexao.socket);
                 exit(0);
                 break;
             default:
@@ -347,19 +349,24 @@ int main(int argc, char *argv[])
     create_sync_dir(username);
 
 
+    dados_conexao.id = 0;
+    dados_conexao.socket = sockfd;
+    dados_conexao.username = username;
+
+
     // Thread para receber respostas do servidor
-    struct connection_info args_listen = {0, sockfd, argv[1]};
+    //struct connection_info args_listen = {0, sockfd, argv[1]};
     pthread_t listen_thread;
-    if (pthread_create(&listen_thread, NULL, listenThread, &args_listen) != 0){
+    if (pthread_create(&listen_thread, NULL, listenThread, NULL) != 0){
         perror("pthread_create error");
         exit(1);
     }
 
     // Thread para inotify
-    struct connection_info args = {0, sockfd, argv[1]};
+    //struct connection_info args = {0, sockfd, argv[1]};
     pthread_t inotify_thread;
     is_watching = true;
-    if (pthread_create(&inotify_thread, NULL, handle_inotify, &args) != 0)
+    if (pthread_create(&inotify_thread, NULL, handle_inotify, NULL) != 0)
     {
         perror("pthread_create error");
         exit(1);

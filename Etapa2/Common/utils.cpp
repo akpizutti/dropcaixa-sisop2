@@ -6,6 +6,13 @@
 
 using namespace std;
 
+
+connection_info::connection_info(){
+    id = -1;
+    socket = -1;
+    username = string();
+}
+
 int save_file(std::string path, int filesize, char *buffer)
 {
     FILE *file = fopen(path.c_str(), "wb");

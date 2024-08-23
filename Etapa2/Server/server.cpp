@@ -251,8 +251,11 @@ int main(int argc, char *argv[])
 			}
 			else
 			{
-				connection_info client_info = {id, newsockfd, user_packet.payload};
-				id++;
+				connection_info client_info = connection_info();
+				client_info.id = id++;
+				client_info.socket = newsockfd;
+				client_info.username = user_packet.payload;
+
 				connections.push_back(client_info);
 
 				User *new_user = new User(user_packet.payload);
@@ -265,9 +268,8 @@ int main(int argc, char *argv[])
 				print_users(connected_users);
 
 				// Create a new thread to handle the client
-				struct connection_info args = {0, newsockfd, new_user->get_username()};
 				pthread_t thread_id;
-				if (pthread_create(&thread_id, NULL, handle_client, &args) != 0)
+				if (pthread_create(&thread_id, NULL, handle_client, &client_info) != 0)
 				{
 					perror("pthread_create error");
 					//            close(newsockfd);
