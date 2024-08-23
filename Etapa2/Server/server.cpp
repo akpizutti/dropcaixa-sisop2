@@ -37,7 +37,7 @@ namespace fs = std::filesystem;
 vector<User *> connected_users;
 vector<connection_info> connections;
 
-int id=0;
+int id = 0;
 
 
 // Function to handle each client connection
@@ -53,12 +53,9 @@ void *handle_client(void *arg)
 
 	create_sync_dir(username);
 
-
-
 	char file_buffer[MAX_FILE_SIZE];
 	char *file_buffer_new;
 	vector<string> files_to_send;
-
 
 	// Read data from client
 	while (1)
@@ -70,19 +67,24 @@ void *handle_client(void *arg)
 		struct stat sb;
 		int file_count = 0;
 
-
 		/* read from the socket */
 		packet = receive_packet(client_socket);
-		if (packet.type==0)
+		if (packet.type == 0)
 		{
-			//connected_users.erase(std::remove(connected_users.begin(), connected_users.end(), username), connected_users.end());
-			//tirar device connected
-			cout << "Client " << username << " disconnected.\n" ;
+			// connected_users.erase(std::remove(connected_users.begin(), connected_users.end(), username), connected_users.end());
+			// tirar device connected
+			cout << "Client " << username << " disconnected.\n";
+
+
+			remove_user(username, &connected_users);
+			close(client_socket);
+			pthread_exit(NULL);
 			break;
 		}
 		else if (packet.type == -1)
 		{
 			perror("ERROR reading from socket");
+			close(client_socket);
 			break;
 		}
 		/* write in the socket */
@@ -97,9 +99,10 @@ void *handle_client(void *arg)
 			case PACKET_FILE_SIGNAL:
 				// save filename from packet.payload here
 				filename = packet.payload;
-				//std::cout << "Receiving file " << filename << " from user " << username <<std::endl;
+				// std::cout << "Receiving file " << filename << " from user " << username <<std::endl;
 				packet_filesize = receive_packet(client_socket);
-				if(packet_filesize.type != PACKET_FILE_LENGTH){
+				if (packet_filesize.type != PACKET_FILE_LENGTH)
+				{
 					cout << "Wrong packet type received. Expected file length. Received " << packet_filesize.type << endl;
 				}
 				filesize = bytes_to_int(packet_filesize.payload);
@@ -107,72 +110,73 @@ void *handle_client(void *arg)
 				packet_mtime = receive_packet(client_socket);
 				modify_time = bytes_to_long(packet_mtime.payload);
 
+				file_buffer_new = (char *)calloc(filesize, sizeof(char));
 
-				file_buffer_new = (char*)calloc(filesize, sizeof(char));
-
-				if(receive_file(file_buffer_new, client_socket) != -1){
-					save_file(sync_dir_user+"/"+filename, filesize, file_buffer_new);
+				if (receive_file(file_buffer_new, client_socket) != -1)
+				{
+					save_file(sync_dir_user + "/" + filename, filesize, file_buffer_new);
 				}
-
-				
 
 				break;
 
 			case PACKET_GET_SYNC_DIR:
-				  
+
 				for (const auto &entry : fs::directory_iterator(sync_dir_user))
 				{
 					if (entry.is_regular_file())
 					{
-						//std::cout << entry.path().filename().string() << std::endl;
+						// std::cout << entry.path().filename().string() << std::endl;
 						files_to_send.push_back(entry.path().filename().string());
 						file_count++;
 					}
-        		}
+				}
 
-				packet_signal_allfiles = create_packet(PACKET_SIGNAL_SYNC,0,0,0,NULL);
+				packet_signal_allfiles = create_packet(PACKET_SIGNAL_SYNC, 0, 0, 0, NULL);
 				send_packet(packet_signal_allfiles, client_socket);
-        
-				packet_file_count = create_packet(PACKET_FILE_COUNT,1,1,1,int_to_bytes(file_count));
+
+				packet_file_count = create_packet(PACKET_FILE_COUNT, 1, 1, 1, int_to_bytes(file_count));
 				send_packet(packet_file_count, client_socket);
 
-				//for(int i=0; i<file_count; i++){}
+				// for(int i=0; i<file_count; i++){}
 
-				for(string fn : files_to_send){
-					send_file(sync_dir_user+"/"+fn,client_socket);
+				for (string fn : files_to_send)
+				{
+					send_file(sync_dir_user + "/" + fn, client_socket);
 				}
 
 				files_to_send.clear();
-				
-				
-				
-			break;
+
+				break;
 
 			case PACKET_DELETE_FILE:
-    			filename = packet.payload;
-    			std::cout << "Request to delete file: " << filename << std::endl;
+				filename = packet.payload;
+				std::cout << "Request to delete file: " << filename << std::endl;
 
-    			// Check if the file exists
-    			file_to_delete = sync_dir_user + "/" + filename;
-    			if (stat(file_to_delete.c_str(), &sb) == 0) {
-        			// File exists, delete it
-        			if (remove(file_to_delete.c_str()) == 0) {
-            			std::cout << "File " << filename << " deleted successfully." << std::endl;
-        			} else {
-            			std::cerr << "Error deleting file " << filename << std::endl;
-        			}
-    			} else {
-        			std::cerr << "File " << filename << " does not exist." << std::endl;
-    			}
-    		break;
+				// Check if the file exists
+				file_to_delete = sync_dir_user + "/" + filename;
+				if (stat(file_to_delete.c_str(), &sb) == 0)
+				{
+					// File exists, delete it
+					if (remove(file_to_delete.c_str()) == 0)
+					{
+						std::cout << "File " << filename << " deleted successfully." << std::endl;
+					}
+					else
+					{
+						std::cerr << "Error deleting file " << filename << std::endl;
+					}
+				}
+				else
+				{
+					std::cerr << "File " << filename << " does not exist." << std::endl;
+				}
+				break;
 
 			default:
 				printf("Received invalid packet type: %d\n", packet.type);
 			}
 		}
 	}
-
-
 
 	// Close the client socket
 	close(client_socket);
@@ -217,11 +221,20 @@ int main(int argc, char *argv[])
 	{
 		printf("Waiting for connections...\n");
 
+
+
 		if (connected_users.size() >= MAX_CLIENTS)
 		{
-			std::cout << "Maximum number of clients reached" << std::endl;
-			send(sockfd, "Maximum number of clients reached", 30, 0);
-			close(sockfd);
+			//std::cout << "Maximum number of clients reached" << std::endl;
+			//send(sockfd, "Maximum number of clients reached", 30, 0);
+			//close(sockfd);
+			//Packet packet_reject = create_packet(PACKET_REJECT, 0,0,0,NULL);
+			//send_packet(packet_reject, sockfd);
+
+			do{
+				sleep(1);
+			} while (connected_users.size() >= MAX_CLIENTS);
+			
 		}
 		else
 		{
@@ -238,12 +251,12 @@ int main(int argc, char *argv[])
 			}
 			else
 			{
-				connection_info client_info = {id,newsockfd,user_packet.payload};
+				connection_info client_info = {id, newsockfd, user_packet.payload};
 				id++;
 				connections.push_back(client_info);
 
 				User *new_user = new User(user_packet.payload);
-				new_user->set_connected_devices(1); 
+				new_user->set_connected_devices(1);
 				// TODO: não deixar conectar mais de 2 clientes por user
 
 				connected_users.push_back(new_user);

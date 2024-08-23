@@ -18,7 +18,7 @@
 #define PACKET_SIGNAL_SYNC 10
 
 
-
+#define PACKET_REJECT 254
 #define PACKET_ERROR 255
 
 #define MAX_PAYLOAD_SIZE 256

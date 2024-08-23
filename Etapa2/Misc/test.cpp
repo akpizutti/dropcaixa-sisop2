@@ -8,16 +8,42 @@
 #include <sys/stat.h>
 #include <math.h>
 
+
+
 using namespace std;
 
+vector<User *> users;
+
 int main(){
-    User *test_user = new User("Paulo");
+    User *paulo = new User("Paulo");
+    User *carlos = new User("Carlos");
+    User *gabriel = new User("Gabriel");
+
     //std::vector<User> connected_users;
     //int a = MAX_PAYLOAD_SIZE;
 
 
 
-    std::cout << test_user->get_username() << std::endl;
+    users.push_back(paulo);
+    //users.push_back(carlos);
+    //users.push_back(gabriel);
+
+    for (int i = 0; i < users.size(); i++)
+	{
+		std::cout << users[i]->get_username() << std::endl;
+	}
+
+    cout << "deletando\n";
+
+    remove_user("Paulo", &users);
+
+    for (int i = 0; i < users.size(); i++)
+	{
+		std::cout << users[i]->get_username() << std::endl;
+	}
+
+
+    //std::cout << test_user->get_username() << std::endl;
 
 
 
@@ -53,13 +79,13 @@ int main(){
     // cout << "sizeof int : " << sizeof(int) << endl;
 
 
-    unsigned long a = 0xff00ff00ff00ff00;
-    char* a_bytes = long_to_bytes(a);
-    for(int i=0;i<sizeof(long);i++){
-        printf("%hhu\n",a_bytes[i]);
-    }
+    // unsigned long a = 0xff00ff00ff00ff00;
+    // char* a_bytes = long_to_bytes(a);
+    // for(int i=0;i<sizeof(long);i++){
+    //     printf("%hhu\n",a_bytes[i]);
+    // }
 
-    cout << "result of conversion: " << (unsigned long)bytes_to_long(a_bytes);
+    // cout << "result of conversion: " << (unsigned long)bytes_to_long(a_bytes);
 
 
 

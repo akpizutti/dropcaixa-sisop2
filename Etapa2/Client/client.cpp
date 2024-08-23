@@ -177,6 +177,11 @@ void *listenThread(void *arg){
             case PACKET_SIGNAL_SYNC:
                 get_all_files(username,socket);
                 break;
+            case PACKET_REJECT:
+                cout << "Connection rejected.";
+                close(socket);
+                exit(0);
+                break;
             default:
                 cout << "listenThread recebeu pacote errado: " << received_packet.type;
                 break;
@@ -341,9 +346,6 @@ int main(int argc, char *argv[])
     cout << "Connected.\n";
     create_sync_dir(username);
 
-    // envia username para o server
-    Packet id = create_packet(PACKET_USER_ID, 0, 1, strlen(argv[1]), argv[1]);
-    send_packet(id, sockfd);
 
     // Thread para receber respostas do servidor
     struct connection_info args_listen = {0, sockfd, argv[1]};
@@ -362,6 +364,10 @@ int main(int argc, char *argv[])
         perror("pthread_create error");
         exit(1);
     }
+
+    // envia username para o server
+    Packet id = create_packet(PACKET_USER_ID, 0, 1, strlen(argv[1]), argv[1]);
+    send_packet(id, sockfd);
 
     char command = 0;
     print_available_commands();

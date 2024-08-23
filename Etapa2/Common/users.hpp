@@ -2,6 +2,7 @@
 #define _USERS_H_
 
 #include <string>
+#include <vector>
 
 class User {
     private:
@@ -15,6 +16,7 @@ class User {
         
 };
 
+void remove_user(std::string username, std::vector<User *> *users);
 
 
 
