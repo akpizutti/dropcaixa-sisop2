@@ -11,6 +11,7 @@ connection_info::connection_info(){
     id = -1;
     socket = -1;
     username = string();
+    is_backup = false;
 }
 
 int save_file(std::string path, int filesize, char *buffer)

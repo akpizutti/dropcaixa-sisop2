@@ -9,9 +9,12 @@ typedef struct connection_info
 	int socket;
 	std::string username;
 
+	bool is_backup;
+
 	connection_info();
-	
+
 } connection_info;
+
 
 int save_file(std::string path, int filesize, char* buffer);
 

@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
+#include <netdb.h>
 #include <pthread.h>
 #include <vector>
 #include <iostream>
@@ -34,7 +35,9 @@ using namespace std;
 namespace fs = std::filesystem;
 
 vector<User *> connected_users;
-vector<connection_info> connections;
+vector<connection_info> client_connections;
+vector<connection_info> backups;
+
 
 bool is_backup = false;
 
@@ -185,8 +188,16 @@ void *handle_client(void *arg)
 }
 
 
-void *backupThread(void *arg){
+void *handle_backup(void *arg){
 	//aqui deve escutar mudanças de arquivo enviadas pelo servidor primário
+
+	struct connection_info args = *((struct connection_info *)arg);
+	int server_socket = args.socket;
+
+	cout << "Hello from handle_backup\n";
+
+	pthread_exit(NULL);
+
 }
 
 void print_users(std::vector<User *> users_list)
@@ -208,98 +219,162 @@ int main(int argc, char *argv[])
 		cout << "Backup:  " << argv[0] << " <port> <backup> <primary_ip> <primary_port>\n";
         exit(0);
 	}
-	if(argc > 2 && strcmp(argv[2],"backup") == 0){
-		is_backup = true;
-		cout << "Backup mode.\n";
-		cout << "This server's port is " << argv[1] <<endl;
-		cout << "Primary server's port is " << argv[3] <<endl;
-		exit(0);
-	}
+
+	int port = atoi(argv[1]);
 
 	// SOCKET LOGIC
 	int sockfd, newsockfd, n;
 	socklen_t clilen;
 	char buffer[256];
-	struct sockaddr_in serv_addr, cli_addr;
+	struct sockaddr_in serv_addr, cli_addr, primary_addr;
 
-	if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-		printf("ERROR opening socket");
-
-	serv_addr.sin_family = AF_INET;
-	serv_addr.sin_port = htons(PORT);
-	serv_addr.sin_addr.s_addr = INADDR_ANY;
-	bzero(&(serv_addr.sin_zero), 8);
-
-	if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-		printf("ERROR on binding");
-
-	// SYNCING SERVER AND DEVICES LOGIC
-	// TCP LISTEN
-	listen(sockfd, MAX_CLIENTS);
-
-	while (1)
-	{
-		printf("Waiting for connections...\n");
-
-
-
-		if (connected_users.size() >= MAX_CLIENTS)
+	// se receber argumento pra iniciar como backup
+	if(argc > 2 && strcmp(argv[2],"backup") == 0){
+		is_backup = true;
+		int primary_port = atoi(argv[4]);
+		struct hostent *primary = gethostbyname(argv[3]);
+		if (primary == NULL)
 		{
-			//std::cout << "Maximum number of clients reached" << std::endl;
-			//send(sockfd, "Maximum number of clients reached", 30, 0);
-			//close(sockfd);
-			//Packet packet_reject = create_packet(PACKET_REJECT, 0,0,0,NULL);
-			//send_packet(packet_reject, sockfd);
-
-			do{
-				sleep(1);
-			} while (connected_users.size() >= MAX_CLIENTS);
-			
+			fprintf(stderr, "ERROR, no such host\n");
+			exit(0);
 		}
-		else
-		{
-			clilen = sizeof(struct sockaddr_in);
-			if ((newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen)) == -1)
-				printf("ERROR on accept");
 
-			Packet user_packet;
-			user_packet = receive_packet(newsockfd);
-			if (user_packet.type != PACKET_USER_ID)
+		cout << "Backup mode.\n";
+		cout << "This server's port is " << port <<endl;
+		cout << "Primary server's port is " << primary_port <<endl;
+
+		// aqui o backup conecta ao server principal
+
+		if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1){
+			printf("ERROR opening socket\n");
+			exit(0);
+		}
+		primary_addr.sin_family = AF_INET;
+		primary_addr.sin_port = htons(primary_port);
+		primary_addr.sin_addr = *((struct in_addr *)primary->h_addr);
+		bzero(&(primary_addr.sin_zero), 8);
+
+		if (connect(sockfd, (struct sockaddr *)&primary_addr, sizeof(primary_addr)) < 0){
+			printf("ERROR connecting\n");
+			exit(0);
+		}
+
+		cout << "Connected to primary server.\n";
+
+		string id_backup = "backup";
+
+		Packet id = create_packet(PACKET_USER_ID, 0, 1, id_backup.size(), id_backup.data());
+    	send_packet(id, sockfd);
+
+		while(1) {
+			continue;
+		}
+		//exit(0);
+	} 
+	else {
+		
+
+		if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+			printf("ERROR opening socket");
+
+		serv_addr.sin_family = AF_INET;
+		serv_addr.sin_port = htons(port);
+		serv_addr.sin_addr.s_addr = INADDR_ANY;
+		bzero(&(serv_addr.sin_zero), 8);
+
+		if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+			printf("ERROR on binding");
+
+		// SYNCING SERVER AND DEVICES LOGIC
+		// TCP LISTEN
+		listen(sockfd, MAX_CLIENTS);
+
+		while (1)
+		{
+			printf("Waiting for connections...\n");
+
+
+
+			if (connected_users.size() >= MAX_CLIENTS)
 			{
-				std::cout << "Invalid packet type received. Expected user ID\n";
-				close(newsockfd);
+				//std::cout << "Maximum number of clients reached" << std::endl;
+				//send(sockfd, "Maximum number of clients reached", 30, 0);
+				//close(sockfd);
+				//Packet packet_reject = create_packet(PACKET_REJECT, 0,0,0,NULL);
+				//send_packet(packet_reject, sockfd);
+
+				do{
+					sleep(1);
+				} while (connected_users.size() >= MAX_CLIENTS);
+				
 			}
 			else
 			{
-				connection_info client_info = connection_info();
-				client_info.id = id++;
-				client_info.socket = newsockfd;
-				client_info.username = user_packet.payload;
+				clilen = sizeof(struct sockaddr_in);
+				if ((newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen)) == -1)
+					printf("ERROR on accept");
 
-				connections.push_back(client_info);
+				cout << "Accepting connection. \n";
 
-				User *new_user = new User(user_packet.payload);
-				new_user->set_connected_devices(1);
-				// TODO: não deixar conectar mais de 2 clientes por user
+				Packet user_packet;
+				user_packet = receive_packet(newsockfd);
 
-				connected_users.push_back(new_user);
-				std::cout << "New client connected: " << user_packet.payload << std::endl;
-
-				print_users(connected_users);
-
-				// Create a new thread to handle the client
-				pthread_t thread_id;
-				if (pthread_create(&thread_id, NULL, handle_client, &client_info) != 0)
+				if (user_packet.type != PACKET_USER_ID)
 				{
-					perror("pthread_create error");
-					//            close(newsockfd);
-				}
-				printf("Client thread successfully created.\n");
-			}
-		}
+					std::cout << "Invalid packet type received. Expected user ID\n";
+					close(newsockfd);
+				} else if (strcmp(user_packet.payload,"backup") == 0){
+					// fazer coisas se quem conectou foi server de backup
+					connection_info backup_info = connection_info();
+					backup_info.id = id++;
+					backup_info.socket = newsockfd;
+					backup_info.username = user_packet.payload;
+					backup_info.is_backup = true;
 
-		// bzero(buffer, 256);
-	}
+					backups.push_back(backup_info);
+
+					// Create a new thread to handle the backup
+					pthread_t thread_id;
+					if (pthread_create(&thread_id, NULL, handle_backup, &backup_info) != 0)
+					{
+						perror("pthread_create error");
+						//            close(newsockfd);
+					}
+					printf("backup thread successfully created.\n");
+
+				}
+				else
+				{
+					connection_info client_info = connection_info();
+					client_info.id = id++;
+					client_info.socket = newsockfd;
+					client_info.username = user_packet.payload;
+
+					client_connections.push_back(client_info);
+
+					User *new_user = new User(user_packet.payload);
+					new_user->set_connected_devices(1);
+					// TODO: não deixar conectar mais de 2 clientes por user
+
+					connected_users.push_back(new_user);
+					std::cout << "New client connected: " << user_packet.payload << std::endl;
+
+					print_users(connected_users);
+
+					// Create a new thread to handle the client
+					pthread_t thread_id;
+					if (pthread_create(&thread_id, NULL, handle_client, &client_info) != 0)
+					{
+						perror("pthread_create error");
+						//            close(newsockfd);
+					}
+					printf("Client thread successfully created.\n");
+				}
+			}
+
+			// bzero(buffer, 256);
+		}
+		}
 
 	close(sockfd);
 	return 0;

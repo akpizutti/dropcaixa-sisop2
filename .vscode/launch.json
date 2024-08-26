@@ -6,7 +6,7 @@
         "type": "cppdbg",
         "request": "launch",
         "program": "${workspaceFolder}/Etapa2/Server/server",
-        "args": [],//["akim", "localhost", "4000"],
+        "args": ["5002", "backup", "127.0.0.1", "4000"],//["akim", "localhost", "4000"],
         "stopAtEntry": false,
         "cwd": "${workspaceFolder}/Etapa2",
         "environment": [],
