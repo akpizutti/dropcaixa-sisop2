@@ -16,6 +16,8 @@
 #define PACKET_FILE_COUNT 8
 #define PACKET_DELETE_FILE 9
 #define PACKET_SIGNAL_SYNC 10
+#define PACKET_PING_REQUEST 11
+#define PACKET_PING_REPLY 12
 
 
 #define PACKET_REJECT 254
@@ -41,6 +43,7 @@ void print_packet_serialized(char *buffer);
 
 // inicializa uma struct de pacote (parece um construtor mas não é)
 Packet create_packet(int type, int seqn, int total_size, int length, char *payload);
+Packet create_packet(int type);
 
 // transforma uma struct de pacote em uma sequência de bytes que pode ser enviada pelo socket (retorno é no parâmetro buffer)
 // valores numéricos são representados em little-endian (byte menos significativo primeiro)

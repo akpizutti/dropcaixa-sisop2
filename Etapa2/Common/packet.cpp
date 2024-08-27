@@ -49,6 +49,15 @@ Packet create_packet(int type, int seqn, int total_size, int length, char* paylo
     }
     return ret;
 }
+Packet create_packet(int type){
+    Packet ret;
+    ret.type = type;
+    ret.seqn = 0;
+    ret.total_size = 0;
+    ret.length = 0;
+    ret.payload = (char*) calloc(MAX_PAYLOAD_SIZE, sizeof(char));
+    return ret;
+}
 
 
 void serialize_packet(Packet data, char* buffer){
