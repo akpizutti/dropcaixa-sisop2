@@ -10,6 +10,7 @@ client: packet users utils
 
 server: packet users utils
 	$(COMPILER) -g -o Server/server Server/server.cpp Common/packet.o Common/users.o Common/utils.o -lm
+	cp Server/server Backup/server
 
 packet: utils
 	$(COMPILER) -g -c -o Common/packet.o Common/packet.cpp Common/utils.o -lm

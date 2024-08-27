@@ -43,6 +43,22 @@ bool is_backup = false;
 
 int id = 0;
 
+void send_file_to_backups(string file_path, string username){
+
+	// for(int i=0; i < backups.size(); i++){
+	// 	int backup_socket = backups[i].socket;
+	// 	send_file(file_path,backup_socket);
+	// }
+	Packet username_packet = create_packet(PACKET_USER_ID,0,0,username.size(),username.data());
+
+	for(connection_info bk : backups){
+		int backup_socket = bk.socket;
+		send_file(file_path,backup_socket);
+		send_packet(username_packet,backup_socket);
+	}
+	return;
+}
+
 
 // Function to handle each client connection
 void *handle_client(void *arg)
@@ -91,7 +107,6 @@ void *handle_client(void *arg)
 			close(client_socket);
 			break;
 		}
-		/* write in the socket */
 		else
 		{
 
@@ -120,6 +135,8 @@ void *handle_client(void *arg)
 				{
 					save_file(sync_dir_user + "/" + filename, filesize, file_buffer_new);
 				}
+
+				send_file_to_backups(sync_dir_user + "/" + filename, username);
 
 				break;
 
@@ -187,6 +204,53 @@ void *handle_client(void *arg)
 	pthread_exit(NULL);
 }
 
+// thread do backup, recebe mensagens do servidor primário
+void *backup_listen_thread(void *arg){
+	struct connection_info args = *((struct connection_info *)arg);
+	int primary_socket = args.socket;
+	cout << "Hello from backup_listen_thread\n";
+
+	//create_sync_dir(username);
+
+	Packet packet_from_primary,packet_filesize,packet_mtime,packet_username;
+	string filename, username, sync_dir_user, save_path;
+	while(1){
+		packet_from_primary = receive_packet(primary_socket);
+		switch(packet_from_primary.type){
+			case PACKET_FILE_SIGNAL: {
+				filename = packet_from_primary.payload;
+
+				packet_filesize = receive_packet(primary_socket);
+				int filesize = bytes_to_int(packet_filesize.payload);
+
+				packet_mtime = receive_packet(primary_socket);
+        		long modify_time = bytes_to_long(packet_mtime.payload);
+
+				char* file_buffer = new char[filesize];
+
+				if(receive_file(file_buffer, primary_socket) == -1){
+					cout << "Receive file failed in backup_listen_thread\n";
+				}
+
+				packet_username = receive_packet(primary_socket);
+				username = packet_username.payload;
+
+				sync_dir_user = get_sync_dir_relative_path(username);
+				save_path = sync_dir_user+"/"+filename;
+				if(!fs::is_directory(sync_dir_user)){
+					mkdir(sync_dir_user.c_str(), 0700);
+				}
+
+				save_file(save_path, filesize, file_buffer);
+				break;
+			}
+			default:
+				cout << "Wrong packet type received in backup_listen_thread: " << packet_from_primary.type << "\n";
+		}
+	}
+
+}
+
 
 void *handle_pings(void *arg){
 	struct connection_info args = *((struct connection_info *)arg);
@@ -235,6 +299,7 @@ void *ping_thread(void *arg) {
 
 	pthread_exit(NULL);
 }
+
 
 
 void print_users(std::vector<User *> users_list)
@@ -307,13 +372,23 @@ int main(int argc, char *argv[])
 		primary_info.id = 0;
 		primary_info.socket = sockfd;
 
-		pthread_t thread_id;
-		if (pthread_create(&thread_id, NULL, ping_thread, &primary_info) != 0)
+		// cria thread para mandar pings para o servidor
+		// pthread_t thread_id;
+		// if (pthread_create(&thread_id, NULL, ping_thread, &primary_info) != 0)
+		// {
+		// 	perror("pthread_create error");
+		// 	//            close(newsockfd);
+		// }
+		// printf("ping thread successfully created.\n");
+
+		// cria thread para receber mensagens do servidor
+		pthread_t listen_thread_id;
+		if (pthread_create(&listen_thread_id, NULL, backup_listen_thread, &primary_info) != 0)
 		{
 			perror("pthread_create error");
 			//            close(newsockfd);
 		}
-		printf("ping thread successfully created.\n");
+		printf("listen thread successfully created.\n");
 
 		while(1) {
 			continue;
@@ -333,7 +408,11 @@ int main(int argc, char *argv[])
 		bzero(&(serv_addr.sin_zero), 8);
 
 		if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-			printf("ERROR on binding");
+		{
+		printf("ERROR on binding");
+		exit(0);
+		}
+
 
 		// SYNCING SERVER AND DEVICES LOGIC
 		// TCP LISTEN
@@ -384,13 +463,13 @@ int main(int argc, char *argv[])
 					backups.push_back(backup_info);
 
 					// Cria nova thread para escutar pings do backup
-					pthread_t thread_id;
-					if (pthread_create(&thread_id, NULL, handle_pings, &backup_info) != 0)
-					{
-						perror("pthread_create error");
-						//            close(newsockfd);
-					}
-					printf("backup thread successfully created.\n");
+					// pthread_t thread_id;
+					// if (pthread_create(&thread_id, NULL, handle_pings, &backup_info) != 0)
+					// {
+					// 	perror("pthread_create error");
+					// 	//            close(newsockfd);
+					// }
+					// printf("backup thread successfully created.\n");
 
 				}
 				else

@@ -184,6 +184,7 @@ void *listenThread(void *arg){
                 close(dados_conexao.socket);
                 exit(0);
                 break;
+
             default:
                 cout << "listenThread recebeu pacote errado: " << received_packet.type;
                 break;

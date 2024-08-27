@@ -60,7 +60,8 @@
         "charconv": "cpp",
         "span": "cpp",
         "variant": "cpp",
-        "format": "cpp"
+        "format": "cpp",
+        "filesystem": "cpp"
     },
     "C_Cpp.default.compilerPath": "/usr/bin/g++"
 }
