@@ -196,8 +196,46 @@ void *handle_backup(void *arg){
 
 	cout << "Hello from handle_backup\n";
 
+	Packet packet_from_server, packet_to_send;
+
+
+	while(1){
+		packet_from_server = receive_packet(server_socket);
+		switch(packet_from_server.type){
+			case PACKET_PING_REQUEST:
+				cout << "Tô vivo!\n";
+				packet_to_send = create_packet(PACKET_PING_REPLY);
+				send_packet(packet_to_send,server_socket);
+				break;
+		}
+
+	}
+	
+
 	pthread_exit(NULL);
 
+}
+
+void *ping_thread(void *arg) {
+	struct connection_info args = *((struct connection_info *)arg);
+	int server_socket = args.socket;
+
+	Packet ping_packet = create_packet(PACKET_PING_REQUEST, 0,0,0,NULL);
+	Packet reply_packet;
+
+	while(1){
+		sleep(5);
+		send_packet(ping_packet,server_socket);
+		cout << "Perguntando pro primário se tá vivo...";
+		reply_packet = receive_packet(server_socket);
+		if(reply_packet.type == PACKET_PING_REPLY){
+			cout << "Tá vivo!\n";
+		} else {
+			cout << "Morreu! \n";
+		}
+	}
+
+	pthread_exit(NULL);
 }
 
 void print_users(std::vector<User *> users_list)
@@ -228,7 +266,7 @@ int main(int argc, char *argv[])
 	char buffer[256];
 	struct sockaddr_in serv_addr, cli_addr, primary_addr;
 
-	// se receber argumento pra iniciar como backup
+	// inicia como backup se receber argumentos de backup
 	if(argc > 2 && strcmp(argv[2],"backup") == 0){
 		is_backup = true;
 		int primary_port = atoi(argv[4]);
@@ -266,11 +304,24 @@ int main(int argc, char *argv[])
 		Packet id = create_packet(PACKET_USER_ID, 0, 1, id_backup.size(), id_backup.data());
     	send_packet(id, sockfd);
 
+		connection_info primary_info = connection_info();
+		primary_info.id = 0;
+		primary_info.socket = sockfd;
+
+		pthread_t thread_id;
+		if (pthread_create(&thread_id, NULL, ping_thread, &primary_info) != 0)
+		{
+			perror("pthread_create error");
+			//            close(newsockfd);
+		}
+		printf("ping thread successfully created.\n");
+
 		while(1) {
 			continue;
 		}
 		//exit(0);
 	} 
+	// a partir daqui só executa se for o primário
 	else {
 		
 
@@ -323,7 +374,7 @@ int main(int argc, char *argv[])
 				{
 					std::cout << "Invalid packet type received. Expected user ID\n";
 					close(newsockfd);
-				} else if (strcmp(user_packet.payload,"backup") == 0){
+				} else if (strcmp(user_packet.payload,"backup") == 0){ //testa se foi um backup que conectou
 					// fazer coisas se quem conectou foi server de backup
 					connection_info backup_info = connection_info();
 					backup_info.id = id++;
