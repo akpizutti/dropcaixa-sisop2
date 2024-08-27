@@ -188,9 +188,7 @@ void *handle_client(void *arg)
 }
 
 
-void *handle_backup(void *arg){
-	//aqui deve escutar mudanças de arquivo enviadas pelo servidor primário
-
+void *handle_pings(void *arg){
 	struct connection_info args = *((struct connection_info *)arg);
 	int server_socket = args.socket;
 
@@ -237,6 +235,7 @@ void *ping_thread(void *arg) {
 
 	pthread_exit(NULL);
 }
+
 
 void print_users(std::vector<User *> users_list)
 {
@@ -321,7 +320,7 @@ int main(int argc, char *argv[])
 		}
 		//exit(0);
 	} 
-	// a partir daqui só executa se for o primário
+	// a partir daqui só deve executar se for o primário
 	else {
 		
 
@@ -384,9 +383,9 @@ int main(int argc, char *argv[])
 
 					backups.push_back(backup_info);
 
-					// Create a new thread to handle the backup
+					// Cria nova thread para escutar pings do backup
 					pthread_t thread_id;
-					if (pthread_create(&thread_id, NULL, handle_backup, &backup_info) != 0)
+					if (pthread_create(&thread_id, NULL, handle_pings, &backup_info) != 0)
 					{
 						perror("pthread_create error");
 						//            close(newsockfd);
