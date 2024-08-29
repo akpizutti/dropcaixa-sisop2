@@ -144,7 +144,7 @@ void *handle_client(void *arg)
 					save_file(sync_dir_user + "/" + filename, filesize, file_buffer_new);
 				}
 				
-				send_file_to_clients(sync_dir_user + "/" + filename, client_info);
+				//send_file_to_clients(sync_dir_user + "/" + filename, client_info);
 				send_file_to_backups(sync_dir_user + "/" + filename, username);
 
 				break;
