@@ -177,7 +177,7 @@ int send_file(std::string file_path, int socket){
     char* filename;
     long int numbytes = 0;
     int bytes_to_read;
-    struct stat attrib;
+    
 
     ifstream file(file_path, ios::in|ios::binary|ios::ate);
 
@@ -190,6 +190,7 @@ int send_file(std::string file_path, int socket){
         filename = basename(file_path.data());
 
         // obter horario de modificação e criação do arquivo
+        struct stat attrib;
         if(stat(file_path.c_str(),&attrib) == -1)
         {
             cout << "Stat error : " << strerror(errno) << endl;

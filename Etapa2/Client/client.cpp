@@ -164,33 +164,60 @@ void *listenThread(void *arg){
     //std::string username = args.username;
     string user_sync_dir = get_sync_dir_relative_path(dados_conexao.username);
 
-    Packet received_packet;
+    int socket = dados_conexao.socket;
+    
 
     cout << "Hello from listenThread\n";
 
+    Packet received_packet, packet_filesize, packet_mtime;
+    string filename, save_path;
+
     do{
-        received_packet = receive_packet(dados_conexao.socket);
+        received_packet = receive_packet(socket);
 
         cout << "listenThread recebeu pacote tipo " << received_packet.type << endl;
 
         if(received_packet.type!= 0 && received_packet.type !=-1)
         {
             switch(received_packet.type){
-            case PACKET_SIGNAL_SYNC:
-                get_all_files(dados_conexao.username,dados_conexao.socket);
-                break;
-            case PACKET_REJECT:
-                cout << "Connection rejected.";
-                close(dados_conexao.socket);
-                exit(0);
-                break;
+                case PACKET_SIGNAL_SYNC:
+                    get_all_files(dados_conexao.username,dados_conexao.socket);
+                    break;
+                case PACKET_REJECT:
+                    cout << "Connection rejected.";
+                    close(dados_conexao.socket);
+                    exit(0);
+                    break;
+                case PACKET_FILE_SIGNAL: {
+                    filename = received_packet.payload;
 
-            default:
-                cout << "listenThread recebeu pacote errado: " << received_packet.type;
-                break;
+                    packet_filesize = receive_packet(socket);
+                    int filesize = bytes_to_int(received_packet.payload);
+
+                    packet_mtime = receive_packet(socket);
+                    long modify_time = bytes_to_long(packet_mtime.payload);
+
+                    char* file_buffer = new char[filesize];
+
+                    if(receive_file(file_buffer, socket) == -1){
+                        cout << "Receive file failed in listenThread\n";
+                    }
+
+                    save_path = user_sync_dir+"/"+filename;
+                    // if(!fs::is_directory(user_sync_dir)){
+                    //     mkdir(user_sync_dir.c_str(), 0700);
+                    // }
+
+                    save_file(save_path, filesize, file_buffer);
+                    break;
+                    }
+                    
+                default:
+                    cout << "listenThread recebeu pacote errado: " << received_packet.type;
+                    break;
             }
         }
-        
+        cout << "oops! ";
     } while (received_packet.type!= 0 && received_packet.type !=-1);
 
     cout<< "saindo da listenThread\n";
