@@ -18,7 +18,8 @@
 #define PACKET_SIGNAL_SYNC 10
 #define PACKET_PING_REQUEST 11
 #define PACKET_PING_REPLY 12
-
+#define PACKET_ELECTION_REQUEST 13
+#define PACKET_SEND_COORDINATOR 14
 
 #define PACKET_REJECT 254
 #define PACKET_ERROR 255
@@ -63,7 +64,7 @@ int send_file(std::string filePath, int socket);
 int receive_file(char *buffer, int socket);
 
 // cliente pede um arquivo e o servidor manda
-int download_file(char* buffer, int socket, std::string filename);
+int download_file(char *buffer, int socket, std::string filename);
 
 void send_error(int socket);
 

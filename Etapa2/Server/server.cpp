@@ -38,27 +38,29 @@ vector<User *> connected_users;
 vector<connection_info> client_connections;
 vector<connection_info> backups;
 
+bool is_election_in_progress = false;
 
 bool is_backup = false;
 
 int id = 0;
 
-void send_file_to_backups(string file_path, string username){
+void send_file_to_backups(string file_path, string username)
+{
 
 	// for(int i=0; i < backups.size(); i++){
 	// 	int backup_socket = backups[i].socket;
 	// 	send_file(file_path,backup_socket);
 	// }
-	Packet username_packet = create_packet(PACKET_USER_ID,0,0,username.size(),username.data());
+	Packet username_packet = create_packet(PACKET_USER_ID, 0, 0, username.size(), username.data());
 
-	for(connection_info bk : backups){
+	for (connection_info bk : backups)
+	{
 		int backup_socket = bk.socket;
-		send_file(file_path,backup_socket);
-		send_packet(username_packet,backup_socket);
+		send_file(file_path, backup_socket);
+		send_packet(username_packet, backup_socket);
 	}
 	return;
 }
-
 
 // Function to handle each client connection
 void *handle_client(void *arg)
@@ -94,7 +96,6 @@ void *handle_client(void *arg)
 			// connected_users.erase(std::remove(connected_users.begin(), connected_users.end(), username), connected_users.end());
 			// tirar device connected
 			cout << "Client " << username << " disconnected.\n";
-
 
 			remove_user(username, &connected_users);
 			close(client_socket);
@@ -205,54 +206,59 @@ void *handle_client(void *arg)
 }
 
 // thread do backup, recebe mensagens do servidor primário
-void *backup_listen_thread(void *arg){
+void *backup_listen_thread(void *arg)
+{
 	struct connection_info args = *((struct connection_info *)arg);
 	int primary_socket = args.socket;
 	cout << "Hello from backup_listen_thread\n";
 
-	//create_sync_dir(username);
+	// create_sync_dir(username);
 
-	Packet packet_from_primary,packet_filesize,packet_mtime,packet_username;
+	Packet packet_from_primary, packet_filesize, packet_mtime, packet_username;
 	string filename, username, sync_dir_user, save_path;
-	while(1){
+	while (1)
+	{
 		packet_from_primary = receive_packet(primary_socket);
-		switch(packet_from_primary.type){
-			case PACKET_FILE_SIGNAL: {
-				filename = packet_from_primary.payload;
+		switch (packet_from_primary.type)
+		{
+		case PACKET_FILE_SIGNAL:
+		{
+			filename = packet_from_primary.payload;
 
-				packet_filesize = receive_packet(primary_socket);
-				int filesize = bytes_to_int(packet_filesize.payload);
+			packet_filesize = receive_packet(primary_socket);
+			int filesize = bytes_to_int(packet_filesize.payload);
 
-				packet_mtime = receive_packet(primary_socket);
-        		long modify_time = bytes_to_long(packet_mtime.payload);
+			packet_mtime = receive_packet(primary_socket);
+			long modify_time = bytes_to_long(packet_mtime.payload);
 
-				char* file_buffer = new char[filesize];
+			char *file_buffer = new char[filesize];
 
-				if(receive_file(file_buffer, primary_socket) == -1){
-					cout << "Receive file failed in backup_listen_thread\n";
-				}
-
-				packet_username = receive_packet(primary_socket);
-				username = packet_username.payload;
-
-				sync_dir_user = get_sync_dir_relative_path(username);
-				save_path = sync_dir_user+"/"+filename;
-				if(!fs::is_directory(sync_dir_user)){
-					mkdir(sync_dir_user.c_str(), 0700);
-				}
-
-				save_file(save_path, filesize, file_buffer);
-				break;
+			if (receive_file(file_buffer, primary_socket) == -1)
+			{
+				cout << "Receive file failed in backup_listen_thread\n";
 			}
-			default:
-				cout << "Wrong packet type received in backup_listen_thread: " << packet_from_primary.type << "\n";
+
+			packet_username = receive_packet(primary_socket);
+			username = packet_username.payload;
+
+			sync_dir_user = get_sync_dir_relative_path(username);
+			save_path = sync_dir_user + "/" + filename;
+			if (!fs::is_directory(sync_dir_user))
+			{
+				mkdir(sync_dir_user.c_str(), 0700);
+			}
+
+			save_file(save_path, filesize, file_buffer);
+			break;
+		}
+		default:
+			cout << "Wrong packet type received in backup_listen_thread: " << packet_from_primary.type << "\n";
 		}
 	}
-
 }
 
-
-void *handle_pings(void *arg){
+void *handle_pings(void *arg)
+{
 	struct connection_info args = *((struct connection_info *)arg);
 	int server_socket = args.socket;
 
@@ -260,47 +266,124 @@ void *handle_pings(void *arg){
 
 	Packet packet_from_server, packet_to_send;
 
-
-	while(1){
+	while (1)
+	{
 		packet_from_server = receive_packet(server_socket);
-		switch(packet_from_server.type){
-			case PACKET_PING_REQUEST:
-				cout << "Tô vivo!\n";
-				packet_to_send = create_packet(PACKET_PING_REPLY);
-				send_packet(packet_to_send,server_socket);
-				break;
+		switch (packet_from_server.type)
+		{
+		case PACKET_PING_REQUEST:
+			cout << "Tô vivo!\n";
+			packet_to_send = create_packet(PACKET_PING_REPLY);
+			send_packet(packet_to_send, server_socket);
+			break;
 		}
-
 	}
-	
 
 	pthread_exit(NULL);
-
 }
 
-void *ping_thread(void *arg) {
+void *ping_thread(void *arg)
+{
 	struct connection_info args = *((struct connection_info *)arg);
 	int server_socket = args.socket;
 
-	Packet ping_packet = create_packet(PACKET_PING_REQUEST, 0,0,0,NULL);
+	Packet ping_packet = create_packet(PACKET_PING_REQUEST, 0, 0, 0, NULL);
 	Packet reply_packet;
 
-	while(1){
+	while (1)
+	{
 		sleep(5);
-		send_packet(ping_packet,server_socket);
+		send_packet(ping_packet, server_socket);
 		cout << "Perguntando pro primário se tá vivo...";
 		reply_packet = receive_packet(server_socket);
-		if(reply_packet.type == PACKET_PING_REPLY){
+		if (reply_packet.type == PACKET_PING_REPLY)
+		{
 			cout << "Tá vivo!\n";
-		} else {
-			cout << "Morreu! \n";
+		}
+		else
+		{
+			cout << "Primário morreu!" << endl;
+			start_ring_election(&args);
 		}
 	}
 
 	pthread_exit(NULL);
 }
 
+void start_ring_election(connection_info *self)
+{
+	if (backups.empty())
+	{
+		std::cout << "Não existem backups para eleição!" << std::endl;
+		return;
+	}
+	if (is_election_in_progress)
+	{
+		std::cout << "Já existe uma eleição em progresso..." << std::endl;
+		return;
+	}
 
+	cout << "Iniciando eleição..." << endl;
+	is_election_in_progress = true;
+
+	int leader_id = self->id;
+	Packet election_packet = create_packet(PACKET_ELECTION_REQUEST, 0, 0, sizeof(int), int_to_bytes(self->id));
+
+	auto it = std::find_if(backups.begin(), backups.end(), [self](const connection_info &conn)
+						   { return conn.id == self->id; });
+
+	if (it == backups.end())
+	{
+		std::cout << "Não sou backup." << std::endl;
+		return;
+	}
+
+	int self_index = std::distance(backups.begin(), it);
+
+	// Send the election packet to the next node in the ring
+	int next_index = (self_index + 1) % backups.size();
+	send_packet(election_packet, backups[next_index].socket);
+
+	// Receive messages until a winner is determined
+	while (true)
+	{
+		Packet received_packet = receive_packet(self->socket);
+		if (received_packet.type == PACKET_ELECTION_REQUEST)
+		{ // Election request message
+			int received_id;
+			memcpy(&received_id, received_packet.payload, sizeof(int));
+
+			if (received_id < leader_id)
+			{
+				leader_id = received_id; // Update leader ID
+			}
+
+			// Pass the message to the next node
+			next_index = (self_index + 1) % backups.size();
+			send_packet(election_packet, backups[next_index].socket);
+
+			delete[] received_packet.payload;
+		}
+		else if (received_packet.type == PACKET_SEND_COORDINATOR)
+		{ // Coordinator announcement message
+			int leader_id;
+			memcpy(&leader_id, received_packet.payload, sizeof(int));
+			std::cout << "Leader elected: ID " << leader_id << std::endl;
+			delete[] received_packet.payload;
+			break; // Stop election process
+		}
+	}
+
+	// Announce the leader to all nodes
+	Packet winner_packet = create_packet(PACKET_SEND_COORDINATOR, 1, 1, sizeof(int), int_to_bytes(leader_id));
+
+	for (auto &conn : backups)
+	{
+		send_packet(winner_packet, conn.socket);
+	}
+
+	is_election_in_progress = false;
+}
 
 void print_users(std::vector<User *> users_list)
 {
@@ -313,13 +396,13 @@ void print_users(std::vector<User *> users_list)
 
 int main(int argc, char *argv[])
 {
-	if (argc < 2 || (argc > 2 && argc < 5)) 
-    {
-        //std::cerr << "Usage: \nPrimary: " << argv[0] << " <port> <backup> <primary_ip> <primary_port>" << std::endl;
+	if (argc < 2 || (argc > 2 && argc < 5))
+	{
+		// std::cerr << "Usage: \nPrimary: " << argv[0] << " <port> <backup> <primary_ip> <primary_port>" << std::endl;
 		cout << "Usage:\n";
 		cout << "Primary: " << argv[0] << " <port>\n";
 		cout << "Backup:  " << argv[0] << " <port> <backup> <primary_ip> <primary_port>\n";
-        exit(0);
+		exit(0);
 	}
 
 	int port = atoi(argv[1]);
@@ -331,7 +414,8 @@ int main(int argc, char *argv[])
 	struct sockaddr_in serv_addr, cli_addr, primary_addr;
 
 	// inicia como backup se receber argumentos de backup
-	if(argc > 2 && strcmp(argv[2],"backup") == 0){
+	if (argc > 2 && strcmp(argv[2], "backup") == 0)
+	{
 		is_backup = true;
 		int primary_port = atoi(argv[4]);
 		struct hostent *primary = gethostbyname(argv[3]);
@@ -342,12 +426,13 @@ int main(int argc, char *argv[])
 		}
 
 		cout << "Backup mode.\n";
-		cout << "This server's port is " << port <<endl;
-		cout << "Primary server's port is " << primary_port <<endl;
+		cout << "This server's port is " << port << endl;
+		cout << "Primary server's port is " << primary_port << endl;
 
 		// aqui o backup conecta ao server principal
 
-		if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1){
+		if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+		{
 			printf("ERROR opening socket\n");
 			exit(0);
 		}
@@ -356,7 +441,8 @@ int main(int argc, char *argv[])
 		primary_addr.sin_addr = *((struct in_addr *)primary->h_addr);
 		bzero(&(primary_addr.sin_zero), 8);
 
-		if (connect(sockfd, (struct sockaddr *)&primary_addr, sizeof(primary_addr)) < 0){
+		if (connect(sockfd, (struct sockaddr *)&primary_addr, sizeof(primary_addr)) < 0)
+		{
 			printf("ERROR connecting\n");
 			exit(0);
 		}
@@ -366,7 +452,7 @@ int main(int argc, char *argv[])
 		string id_backup = "backup";
 
 		Packet id = create_packet(PACKET_USER_ID, 0, 1, id_backup.size(), id_backup.data());
-    	send_packet(id, sockfd);
+		send_packet(id, sockfd);
 
 		connection_info primary_info = connection_info();
 		primary_info.id = 0;
@@ -390,14 +476,15 @@ int main(int argc, char *argv[])
 		}
 		printf("listen thread successfully created.\n");
 
-		while(1) {
+		while (1)
+		{
 			continue;
 		}
-		//exit(0);
-	} 
-	// a partir daqui só deve executar se for o primário
-	else {
-		
+		// exit(0);
+	}
+	// a partir daqui só deve executar se for o primário ou backup eleito
+	else
+	{
 
 		if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 			printf("ERROR opening socket");
@@ -409,10 +496,9 @@ int main(int argc, char *argv[])
 
 		if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
 		{
-		printf("ERROR on binding");
-		exit(0);
+			printf("ERROR on binding");
+			exit(0);
 		}
-
 
 		// SYNCING SERVER AND DEVICES LOGIC
 		// TCP LISTEN
@@ -422,20 +508,18 @@ int main(int argc, char *argv[])
 		{
 			printf("Waiting for connections...\n");
 
-
-
 			if (connected_users.size() >= MAX_CLIENTS)
 			{
-				//std::cout << "Maximum number of clients reached" << std::endl;
-				//send(sockfd, "Maximum number of clients reached", 30, 0);
-				//close(sockfd);
-				//Packet packet_reject = create_packet(PACKET_REJECT, 0,0,0,NULL);
-				//send_packet(packet_reject, sockfd);
+				// std::cout << "Maximum number of clients reached" << std::endl;
+				// send(sockfd, "Maximum number of clients reached", 30, 0);
+				// close(sockfd);
+				// Packet packet_reject = create_packet(PACKET_REJECT, 0,0,0,NULL);
+				// send_packet(packet_reject, sockfd);
 
-				do{
+				do
+				{
 					sleep(1);
 				} while (connected_users.size() >= MAX_CLIENTS);
-				
 			}
 			else
 			{
@@ -452,7 +536,9 @@ int main(int argc, char *argv[])
 				{
 					std::cout << "Invalid packet type received. Expected user ID\n";
 					close(newsockfd);
-				} else if (strcmp(user_packet.payload,"backup") == 0){ //testa se foi um backup que conectou
+				}
+				else if (strcmp(user_packet.payload, "backup") == 0)
+				{ // testa se foi um backup que conectou
 					// fazer coisas se quem conectou foi server de backup
 					connection_info backup_info = connection_info();
 					backup_info.id = id++;
@@ -470,7 +556,6 @@ int main(int argc, char *argv[])
 					// 	//            close(newsockfd);
 					// }
 					// printf("backup thread successfully created.\n");
-
 				}
 				else
 				{
@@ -503,7 +588,7 @@ int main(int argc, char *argv[])
 
 			// bzero(buffer, 256);
 		}
-		}
+	}
 
 	close(sockfd);
 	return 0;
