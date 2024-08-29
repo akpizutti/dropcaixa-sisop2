@@ -59,6 +59,17 @@ void send_file_to_backups(string file_path, string username){
 	return;
 }
 
+void send_delete_to_backups(string filename, string username){
+	Packet delete_packet = create_packet(PACKET_DELETE_FILE,0,0,filename.size(),filename.data());
+	Packet username_packet = create_packet(PACKET_USER_ID,0,0,username.size(),username.data());
+	for(connection_info bk : backups){
+		int backup_socket = bk.socket;
+		send_packet(delete_packet, backup_socket);
+		send_packet(username_packet,backup_socket);
+	}
+	return;
+}
+
 void send_file_to_clients(string file_path, connection_info client_that_sent){
 	for(connection_info cl : client_connections){
 		if(cl.username == client_that_sent.username && cl.id != client_that_sent.id){
@@ -195,11 +206,13 @@ void *handle_client(void *arg)
 					{
 						std::cerr << "Error deleting file " << filename << std::endl;
 					}
+					send_delete_to_backups(filename,username);
 				}
 				else
 				{
 					std::cerr << "File " << filename << " does not exist." << std::endl;
 				}
+				
 				break;
 
 			default:
@@ -222,9 +235,14 @@ void *backup_listen_thread(void *arg){
 	//create_sync_dir(username);
 
 	Packet packet_from_primary,packet_filesize,packet_mtime,packet_username;
-	string filename, username, sync_dir_user, save_path;
+	string filename, username, sync_dir_user, save_path, path_to_delete;
+	struct stat sb;
+
 	while(1){
 		packet_from_primary = receive_packet(primary_socket);
+
+		cout << "Received packet type " << packet_from_primary.type << endl;
+		
 		switch(packet_from_primary.type){
 			case PACKET_FILE_SIGNAL: {
 				filename = packet_from_primary.payload;
@@ -251,6 +269,39 @@ void *backup_listen_thread(void *arg){
 				}
 
 				save_file(save_path, filesize, file_buffer);
+				break;
+			}
+			case PACKET_DELETE_FILE:{
+				filename = packet_from_primary.payload;
+
+				packet_username = receive_packet(primary_socket);
+				username = packet_username.payload;
+
+				cout << "Request to delete file: " << filename << " from user " << username << endl;
+
+				sync_dir_user = get_sync_dir_relative_path(username);
+
+				path_to_delete = sync_dir_user + "/" + filename;
+				if (stat(path_to_delete.c_str(), &sb) == 0)
+				{
+					// File exists, delete it
+					if (remove(path_to_delete.c_str()) == 0)
+					{
+						std::cout << "File " << filename << " deleted successfully." << std::endl;
+					}
+					else
+					{
+						std::cerr << "Error deleting file " << filename << std::endl;
+					}
+				}
+				else
+				{
+					std::cerr << "File " << filename << " does not exist." << std::endl;
+				}
+
+
+
+
 				break;
 			}
 			default:
