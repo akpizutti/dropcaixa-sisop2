@@ -7,6 +7,7 @@ all: client server users
 
 client: packet users utils
 	$(COMPILER) -g -o Client/client Client/client.cpp Common/packet.o Common/users.o Common/utils.o -lm
+	cp Client/client Client2/client
 
 server: packet users utils
 	$(COMPILER) -g -o Server/server Server/server.cpp Common/packet.o Common/users.o Common/utils.o -lm

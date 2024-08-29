@@ -59,16 +59,24 @@ void send_file_to_backups(string file_path, string username){
 	return;
 }
 
+void send_file_to_clients(string file_path, connection_info client_that_sent){
+	for(connection_info cl : client_connections){
+		if(cl.username == client_that_sent.username && cl.id != client_that_sent.id){
+			send_file(file_path,cl.socket);
+		}
+	}
+}
+
 
 // Function to handle each client connection
 void *handle_client(void *arg)
 {
-	struct connection_info args = *((struct connection_info *)arg);
-	int client_socket = args.socket;
+	struct connection_info client_info = *((struct connection_info *)arg);
+	int client_socket = client_info.socket;
 
 	Packet packet;
 
-	std::string username = args.username;
+	std::string username = client_info.username;
 	string sync_dir_user = get_sync_dir_relative_path(username);
 
 	create_sync_dir(username);
@@ -135,7 +143,8 @@ void *handle_client(void *arg)
 				{
 					save_file(sync_dir_user + "/" + filename, filesize, file_buffer_new);
 				}
-
+				
+				//send_file_to_clients(sync_dir_user + "/" + filename, client_info);
 				send_file_to_backups(sync_dir_user + "/" + filename, username);
 
 				break;
