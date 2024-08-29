@@ -16,6 +16,8 @@
 #include <iterator>
 #include <dirent.h>
 #include <filesystem>
+#include <algorithm>
+#include <cstring>
 
 //  sugestoes do professor
 //  main em loop recebendo requests e criando threads para cada accept com cliente(device) DONE
@@ -46,11 +48,6 @@ int id = 0;
 
 void send_file_to_backups(string file_path, string username)
 {
-
-	// for(int i=0; i < backups.size(); i++){
-	// 	int backup_socket = backups[i].socket;
-	// 	send_file(file_path,backup_socket);
-	// }
 	Packet username_packet = create_packet(PACKET_USER_ID, 0, 0, username.size(), username.data());
 
 	for (connection_info bk : backups)
@@ -253,6 +250,7 @@ void *backup_listen_thread(void *arg)
 		}
 		default:
 			cout << "Wrong packet type received in backup_listen_thread: " << packet_from_primary.type << "\n";
+			pthread_exit(NULL); // murder
 		}
 	}
 }
@@ -276,34 +274,6 @@ void *handle_pings(void *arg)
 			packet_to_send = create_packet(PACKET_PING_REPLY);
 			send_packet(packet_to_send, server_socket);
 			break;
-		}
-	}
-
-	pthread_exit(NULL);
-}
-
-void *ping_thread(void *arg)
-{
-	struct connection_info args = *((struct connection_info *)arg);
-	int server_socket = args.socket;
-
-	Packet ping_packet = create_packet(PACKET_PING_REQUEST, 0, 0, 0, NULL);
-	Packet reply_packet;
-
-	while (1)
-	{
-		sleep(5);
-		send_packet(ping_packet, server_socket);
-		cout << "Perguntando pro primário se tá vivo...";
-		reply_packet = receive_packet(server_socket);
-		if (reply_packet.type == PACKET_PING_REPLY)
-		{
-			cout << "Tá vivo!\n";
-		}
-		else
-		{
-			cout << "Primário morreu!" << endl;
-			start_ring_election(&args);
 		}
 	}
 
@@ -383,6 +353,37 @@ void start_ring_election(connection_info *self)
 	}
 
 	is_election_in_progress = false;
+
+	delete[] election_packet.payload;
+	delete[] winner_packet.payload;
+}
+
+void *ping_thread(void *arg)
+{
+	struct connection_info args = *((struct connection_info *)arg);
+	int server_socket = args.socket;
+
+	Packet ping_packet = create_packet(PACKET_PING_REQUEST, 0, 0, 0, NULL);
+	Packet reply_packet;
+
+	do
+	{
+		sleep(5);
+		send_packet(ping_packet, server_socket);
+		cout << "Perguntando pro primário se tá vivo...";
+		reply_packet = receive_packet(server_socket);
+		if (reply_packet.type == PACKET_PING_REPLY)
+		{
+			cout << "Tá vivo!\n";
+		}
+		else
+		{
+			cout << "Primário morreu!" << endl;
+			start_ring_election(&args);
+		}
+	} while (!is_election_in_progress);
+
+	pthread_exit(NULL);
 }
 
 void print_users(std::vector<User *> users_list)
@@ -459,13 +460,13 @@ int main(int argc, char *argv[])
 		primary_info.socket = sockfd;
 
 		// cria thread para mandar pings para o servidor
-		// pthread_t thread_id;
-		// if (pthread_create(&thread_id, NULL, ping_thread, &primary_info) != 0)
-		// {
-		// 	perror("pthread_create error");
-		// 	//            close(newsockfd);
-		// }
-		// printf("ping thread successfully created.\n");
+		pthread_t thread_id;
+		if (pthread_create(&thread_id, NULL, ping_thread, &primary_info) != 0)
+		{
+			perror("pthread_create error");
+			//            close(newsockfd);
+		}
+		printf("ping thread successfully created.\n");
 
 		// cria thread para receber mensagens do servidor
 		pthread_t listen_thread_id;
@@ -549,13 +550,13 @@ int main(int argc, char *argv[])
 					backups.push_back(backup_info);
 
 					// Cria nova thread para escutar pings do backup
-					// pthread_t thread_id;
-					// if (pthread_create(&thread_id, NULL, handle_pings, &backup_info) != 0)
-					// {
-					// 	perror("pthread_create error");
-					// 	//            close(newsockfd);
-					// }
-					// printf("backup thread successfully created.\n");
+					pthread_t thread_id;
+					if (pthread_create(&thread_id, NULL, handle_pings, &backup_info) != 0)
+					{
+						perror("pthread_create error");
+						//            close(newsockfd);
+					}
+					printf("backup thread successfully created.\n");
 				}
 				else
 				{
